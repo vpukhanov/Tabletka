@@ -12,14 +12,14 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun TabletkaBottomBar(
-    currentScreen: Screen,
-    onNavigate: (Screen) -> Unit,
+    currentRoute: String?,
+    onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     NavigationBar(modifier = modifier) {
         NavigationBarItem(
-            selected = currentScreen is Screen.Today,
-            onClick = { onNavigate(Screen.Today) },
+            selected = currentRoute == "today",
+            onClick = { onNavigate("today") },
             icon = {
                 Icon(
                     imageVector = Icons.Default.Today,
@@ -29,8 +29,8 @@ fun TabletkaBottomBar(
             label = { Text("Today") }
         )
         NavigationBarItem(
-            selected = currentScreen is Screen.List,
-            onClick = { onNavigate(Screen.List) },
+            selected = currentRoute == "medications",
+            onClick = { onNavigate("medications") },
             icon = {
                 Icon(
                     imageVector = Icons.Default.List,

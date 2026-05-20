@@ -52,7 +52,8 @@ fun TodayScreen(
     groups: List<TodayScheduleGroup>,
     onToggleTakeStatus: (Int, Int, Boolean) -> Unit,
     onAddMedicationClick: () -> Unit,
-    onNavigate: (Screen) -> Unit,
+    onNavigate: (String) -> Unit,
+    currentRoute: String?,
     modifier: Modifier = Modifier
 ) {
     val activeGroups = groups.filter { !it.isTaken }
@@ -84,7 +85,7 @@ fun TodayScreen(
         },
         bottomBar = {
             TabletkaBottomBar(
-                currentScreen = Screen.Today,
+                currentRoute = currentRoute,
                 onNavigate = onNavigate
             )
         },

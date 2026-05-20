@@ -17,7 +17,7 @@ import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import ru.pukhanov.tabletka.data.model.MedicationTake
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
-import ru.pukhanov.tabletka.ui.screens.Screen
+
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.UUID
@@ -32,6 +32,7 @@ data class ScheduleUiState(
 )
 
 data class AddEditUiState(
+    val medicationId: Long? = null,
     val title: String = "",
     val brandName: String = "",
     val dosage: String = "",
@@ -57,8 +58,7 @@ data class TodayScheduleGroup(
 @OptIn(ExperimentalCoroutinesApi::class)
 class MedicationViewModel(private val repository: MedicationRepository) : ViewModel() {
 
-    private val _currentScreen = MutableStateFlow<Screen>(Screen.Today)
-    val currentScreen: StateFlow<Screen> = _currentScreen.asStateFlow()
+
 
     private val _currentDate = MutableStateFlow(LocalDate.now().toString())
     val currentDate: StateFlow<String> = _currentDate.asStateFlow()
@@ -128,13 +128,6 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     private val _addEditUiState = MutableStateFlow(AddEditUiState())
     val addEditUiState: StateFlow<AddEditUiState> = _addEditUiState.asStateFlow()
 
-    fun navigateTo(screen: Screen) {
-        _currentScreen.value = screen
-        if (screen is Screen.AddEdit) {
-            loadMedication(screen.medicationId)
-        }
-    }
-
     fun onTitleChanged(newTitle: String) {
         _addEditUiState.update { it.copy(title = newTitle, titleError = null) }
     }
@@ -151,7 +144,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         if (id == null) {
             _addEditUiState.value = AddEditUiState()
         } else {
-            _addEditUiState.value = AddEditUiState(isEditMode = true)
+            _addEditUiState.value = AddEditUiState(medicationId = id, isEditMode = true)
             viewModelScope.launch {
                 val medicationWithSchedules = repository.getWithSchedules(id)
                 if (medicationWithSchedules != null) {
@@ -178,7 +171,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         }
     }
 
-    fun saveMedication() {
+    fun saveMedication(onSuccess: () -> Unit) {
         val currentState = _addEditUiState.value
         if (currentState.title.isBlank()) {
             _addEditUiState.update { it.copy(titleError = "Title cannot be empty") }
@@ -187,8 +180,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
 
         _addEditUiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            val currentScreenState = _currentScreen.value
-            val id = if (currentScreenState is Screen.AddEdit) currentScreenState.medicationId ?: 0L else 0L
+            val id = currentState.medicationId ?: 0L
 
             val medication = Medication(
                 id = id,
@@ -208,7 +200,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
             }
             repository.save(medication, schedules)
             _addEditUiState.update { it.copy(isSaving = false) }
-            _currentScreen.value = Screen.List
+            onSuccess()
         }
     }
 
@@ -269,10 +261,6 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     fun deleteMedication(medication: Medication) {
         viewModelScope.launch {
             repository.delete(medication)
-            val currentScreenState = _currentScreen.value
-            if (currentScreenState is Screen.AddEdit && currentScreenState.medicationId == medication.id) {
-                _currentScreen.value = Screen.List
-            }
         }
     }
 }

@@ -60,7 +60,8 @@ fun MedicationListScreen(
     onAddClick: () -> Unit,
     onMedicationClick: (Long) -> Unit,
     onDeleteMedication: (Medication) -> Unit,
-    onNavigate: (Screen) -> Unit,
+    onNavigate: (String) -> Unit,
+    currentRoute: String?,
     modifier: Modifier = Modifier
 ) {
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
@@ -89,7 +90,7 @@ fun MedicationListScreen(
         },
         bottomBar = {
             TabletkaBottomBar(
-                currentScreen = Screen.List,
+                currentRoute = currentRoute,
                 onNavigate = onNavigate
             )
         },

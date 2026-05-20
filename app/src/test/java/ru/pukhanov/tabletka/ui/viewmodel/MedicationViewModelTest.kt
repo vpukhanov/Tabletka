@@ -21,7 +21,6 @@ import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import ru.pukhanov.tabletka.data.model.MedicationTake
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
-import ru.pukhanov.tabletka.ui.screens.Screen
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -49,38 +48,28 @@ class MedicationViewModelTest {
 
     @Test
     fun initialState_isCorrect() = runTest {
-        assertEquals(Screen.Today, viewModel.currentScreen.value)
         assertEquals(emptyList<Medication>(), viewModel.medications.value)
         assertEquals(AddEditUiState(), viewModel.addEditUiState.value)
     }
 
     @Test
-    fun navigateTo_updatesCurrentScreen() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
-        assertEquals(Screen.AddEdit(null), viewModel.currentScreen.value)
-
-        viewModel.navigateTo(Screen.List)
-        assertEquals(Screen.List, viewModel.currentScreen.value)
-    }
-
-    @Test
-    fun navigateTo_withMedicationId_loadsMedicationDetails() = runTest {
+    fun loadMedication_withMedicationId_loadsMedicationDetails() = runTest {
         val medication = Medication(id = 42L, title = "Aspirin", brandName = "Bayer", dosage = "500mg")
         fakeDao.insert(medication)
 
-        viewModel.navigateTo(Screen.AddEdit(42L))
-        assertEquals(Screen.AddEdit(42L), viewModel.currentScreen.value)
+        viewModel.loadMedication(42L)
         assertEquals("Aspirin", viewModel.addEditUiState.value.title)
         assertEquals("Bayer", viewModel.addEditUiState.value.brandName)
         assertEquals("500mg", viewModel.addEditUiState.value.dosage)
         assertEquals(true, viewModel.addEditUiState.value.isEditMode)
+        assertEquals(42L, viewModel.addEditUiState.value.medicationId)
     }
 
     @Test
     fun saveMedication_emptyTitle_setsError() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onTitleChanged("")
-        viewModel.saveMedication()
+        viewModel.saveMedication(onSuccess = {})
 
         assertEquals("Title cannot be empty", viewModel.addEditUiState.value.titleError)
         assertEquals(0, fakeDao.getAll().first().size)
@@ -88,20 +77,19 @@ class MedicationViewModelTest {
 
     @Test
     fun saveNewMedication_success() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onTitleChanged("Paracetamol")
         viewModel.onBrandNameChanged("Panadol")
         viewModel.onDosageChanged("500mg")
-        viewModel.saveMedication()
+        var wasSuccess = false
+        viewModel.saveMedication(onSuccess = { wasSuccess = true })
 
         val list = fakeDao.getAll().first()
         assertEquals(1, list.size)
         assertEquals("Paracetamol", list[0].title)
         assertEquals("Panadol", list[0].brandName)
         assertEquals("500mg", list[0].dosage)
-        
-        // Navigation should go back to list
-        assertEquals(Screen.List, viewModel.currentScreen.value)
+        assertEquals(true, wasSuccess)
     }
 
     @Test
@@ -109,11 +97,12 @@ class MedicationViewModelTest {
         val original = Medication(id = 10L, title = "Ibuprofen", brandName = "Nurofen", dosage = "200mg")
         fakeDao.insert(original)
 
-        viewModel.navigateTo(Screen.AddEdit(10L))
+        viewModel.loadMedication(10L)
         viewModel.onTitleChanged("Ibuprofen Forte")
         viewModel.onBrandNameChanged("Advil")
         viewModel.onDosageChanged("400mg")
-        viewModel.saveMedication()
+        var wasSuccess = false
+        viewModel.saveMedication(onSuccess = { wasSuccess = true })
 
         val list = fakeDao.getAll().first()
         assertEquals(1, list.size)
@@ -121,9 +110,7 @@ class MedicationViewModelTest {
         assertEquals("Ibuprofen Forte", list[0].title)
         assertEquals("Advil", list[0].brandName)
         assertEquals("400mg", list[0].dosage)
-        
-        // Navigation should go back to list
-        assertEquals(Screen.List, viewModel.currentScreen.value)
+        assertEquals(true, wasSuccess)
     }
 
     @Test
@@ -139,7 +126,7 @@ class MedicationViewModelTest {
 
     @Test
     fun onAddSchedule_appendsDefaultSchedule() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onAddSchedule()
 
         val schedules = viewModel.addEditUiState.value.schedules
@@ -151,7 +138,7 @@ class MedicationViewModelTest {
 
     @Test
     fun onScheduleTimeChanged_updatesTimeCorrectly() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onAddSchedule()
         viewModel.onScheduleTimeChanged(index = 0, hour = 14, minute = 45)
 
@@ -162,7 +149,7 @@ class MedicationViewModelTest {
 
     @Test
     fun onScheduleDayToggled_togglesDayCorrectly() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onAddSchedule()
 
         // Toggle Monday off
@@ -176,7 +163,7 @@ class MedicationViewModelTest {
 
     @Test
     fun onDeleteSchedule_removesScheduleCorrectly() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onAddSchedule() // index 0
         viewModel.onAddSchedule() // index 1
 
@@ -189,14 +176,14 @@ class MedicationViewModelTest {
     }
 
     @Test
-    fun navigateTo_withMedicationId_loadsSchedules() = runTest {
+    fun loadMedication_withMedicationId_loadsSchedules() = runTest {
         val medication = Medication(id = 42L, title = "Aspirin")
         val schedules = listOf(
             MedicationSchedule(id = 1L, medicationId = 42L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY))
         )
         fakeDao.saveMedicationWithSchedules(medication, schedules)
 
-        viewModel.navigateTo(Screen.AddEdit(42L))
+        viewModel.loadMedication(42L)
         val state = viewModel.addEditUiState.value
         assertEquals("Aspirin", state.title)
         assertEquals(1, state.schedules.size)
@@ -206,12 +193,12 @@ class MedicationViewModelTest {
 
     @Test
     fun saveNewMedication_savesSchedules() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onTitleChanged("Ibuprofen")
         viewModel.onAddSchedule()
         viewModel.onScheduleTimeChanged(index = 0, hour = 12, minute = 30)
         viewModel.onScheduleDayToggled(index = 0, day = DayOfWeek.WEDNESDAY)
-        viewModel.saveMedication()
+        viewModel.saveMedication(onSuccess = {})
 
         val all = fakeDao.getAll().first()
         assertEquals(1, all.size)
@@ -227,7 +214,7 @@ class MedicationViewModelTest {
 
     @Test
     fun onScheduleDosesChanged_updatesDosesCorrectly() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onAddSchedule()
         viewModel.onScheduleDosesChanged(index = 0, doses = 2.5)
 
@@ -236,14 +223,14 @@ class MedicationViewModelTest {
     }
 
     @Test
-    fun navigateTo_withMedicationId_loadsSchedulesWithCustomDoses() = runTest {
+    fun loadMedication_withMedicationId_loadsSchedulesWithCustomDoses() = runTest {
         val medication = Medication(id = 42L, title = "Aspirin")
         val schedules = listOf(
             MedicationSchedule(id = 1L, medicationId = 42L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY), doses = 1.5)
         )
         fakeDao.saveMedicationWithSchedules(medication, schedules)
 
-        viewModel.navigateTo(Screen.AddEdit(42L))
+        viewModel.loadMedication(42L)
         val state = viewModel.addEditUiState.value
         assertEquals("Aspirin", state.title)
         assertEquals(1, state.schedules.size)
@@ -254,12 +241,12 @@ class MedicationViewModelTest {
 
     @Test
     fun saveNewMedication_savesSchedulesWithCustomDoses() = runTest {
-        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.loadMedication(null)
         viewModel.onTitleChanged("Ibuprofen")
         viewModel.onAddSchedule()
         viewModel.onScheduleTimeChanged(index = 0, hour = 12, minute = 30)
         viewModel.onScheduleDosesChanged(index = 0, doses = 3.0)
-        viewModel.saveMedication()
+        viewModel.saveMedication(onSuccess = {})
 
         val all = fakeDao.getAll().first()
         assertEquals(1, all.size)
