@@ -93,6 +93,9 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         }
 
+        // Generate deterministic notification ID using the formula from getRequestCode
+        val notificationId = (dayOfWeekValue * 10000) + (hour * 100) + minute
+
         // Tapping the notification takes the user to the Today screen (MainActivity)
         val notificationIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -101,6 +104,18 @@ class AlarmReceiver : BroadcastReceiver() {
             context,
             0,
             notificationIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val markAsTakenIntent = Intent(context, MarkAsTakenReceiver::class.java).apply {
+            putExtra("EXTRA_HOUR", hour)
+            putExtra("EXTRA_MINUTE", minute)
+            putExtra("EXTRA_NOTIFICATION_ID", notificationId)
+        }
+        val markAsTakenPendingIntent = PendingIntent.getBroadcast(
+            context,
+            notificationId,
+            markAsTakenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -124,13 +139,15 @@ class AlarmReceiver : BroadcastReceiver() {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
+            .addAction(
+                ru.pukhanov.tabletka.R.drawable.ic_notification_checkmark,
+                context.getString(ru.pukhanov.tabletka.R.string.mark_as_taken),
+                markAsTakenPendingIntent
+            )
             .setAutoCancel(true)
             .build()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        
-        // Generate deterministic notification ID using the formula from getRequestCode
-        val notificationId = (dayOfWeekValue * 10000) + (hour * 100) + minute
         notificationManager.notify(notificationId, notification)
     }
 }
