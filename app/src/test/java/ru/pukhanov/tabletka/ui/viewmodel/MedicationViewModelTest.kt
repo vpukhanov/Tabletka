@@ -261,6 +261,50 @@ class MedicationViewModelTest {
     }
 
     @Test
+    fun hasChanges_initiallyFalse() = runTest {
+        viewModel.loadMedication(null)
+        assertEquals(false, viewModel.addEditUiState.value.hasChanges)
+    }
+
+    @Test
+    fun hasChanges_becomesTrueOnFieldChange() = runTest {
+        viewModel.loadMedication(null)
+        viewModel.onTitleChanged("Aspirin")
+        assertEquals(true, viewModel.addEditUiState.value.hasChanges)
+
+        // Reverting it back should set hasChanges back to false
+        viewModel.onTitleChanged("")
+        assertEquals(false, viewModel.addEditUiState.value.hasChanges)
+    }
+
+    @Test
+    fun hasChanges_becomesTrueOnScheduleAdd() = runTest {
+        viewModel.loadMedication(null)
+        viewModel.onAddSchedule()
+        assertEquals(true, viewModel.addEditUiState.value.hasChanges)
+
+        // Deleting it should make it false again
+        viewModel.onDeleteSchedule(0)
+        assertEquals(false, viewModel.addEditUiState.value.hasChanges)
+    }
+
+    @Test
+    fun hasChanges_existingMedication_startsFalseAndTracksChanges() = runTest {
+        val medication = Medication(id = 42L, title = "Aspirin", brandName = "Bayer", dosage = "500mg")
+        fakeDao.insert(medication)
+
+        viewModel.loadMedication(42L)
+        assertEquals(false, viewModel.addEditUiState.value.hasChanges)
+
+        viewModel.onDosageChanged("1000mg")
+        assertEquals(true, viewModel.addEditUiState.value.hasChanges)
+
+        // Reverting it back to "500mg" should make hasChanges false
+        viewModel.onDosageChanged("500mg")
+        assertEquals(false, viewModel.addEditUiState.value.hasChanges)
+    }
+
+    @Test
     fun todayScheduleGroups_filtersByDayOfWeek() = runTest {
         viewModel.setCurrentDate(LocalDate.of(2026, 5, 20)) // Wednesday
         

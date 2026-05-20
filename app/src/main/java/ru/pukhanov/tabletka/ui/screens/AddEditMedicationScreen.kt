@@ -65,6 +65,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
@@ -98,6 +99,11 @@ fun AddEditMedicationScreen(
     val context = LocalContext.current
     val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
+    var showDiscardDialog by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = state.hasChanges && !state.isSaving) {
+        showDiscardDialog = true
+    }
 
     val checkExactAlarmAndSave = {
         val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -157,7 +163,15 @@ fun AddEditMedicationScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(
+                        onClick = {
+                            if (state.hasChanges) {
+                                showDiscardDialog = true
+                            } else {
+                                onBackClick()
+                            }
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Go back"
@@ -165,14 +179,16 @@ fun AddEditMedicationScreen(
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = handleSave,
-                        enabled = !state.isSaving
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Save medication"
-                        )
+                    if (state.hasChanges) {
+                        IconButton(
+                            onClick = handleSave,
+                            enabled = !state.isSaving
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Save medication"
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -409,6 +425,39 @@ fun AddEditMedicationScreen(
                         }
                     ) {
                         Text("Save Anyway")
+                    }
+                }
+            )
+        }
+
+        if (showDiscardDialog) {
+            AlertDialog(
+                onDismissRequest = { showDiscardDialog = false },
+                title = {
+                    Text(
+                        text = "Discard changes?",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
+                text = {
+                    Text(text = "You have unsaved changes. Are you sure you want to discard them?")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showDiscardDialog = false
+                            onBackClick()
+                        }
+                    ) {
+                        Text(
+                            text = "Discard",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDiscardDialog = false }) {
+                        Text("Keep Editing")
                     }
                 }
             )

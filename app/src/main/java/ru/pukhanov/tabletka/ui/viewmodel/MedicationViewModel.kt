@@ -38,7 +38,8 @@ data class AddEditUiState(
     val schedules: List<ScheduleUiState> = emptyList(),
     val titleError: String? = null,
     val isSaving: Boolean = false,
-    val isEditMode: Boolean = false
+    val isEditMode: Boolean = false,
+    val hasChanges: Boolean = false
 )
 
 data class TodayMedicationItem(
@@ -127,44 +128,65 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     private val _addEditUiState = MutableStateFlow(AddEditUiState())
     val addEditUiState: StateFlow<AddEditUiState> = _addEditUiState.asStateFlow()
 
+    private var originalState: AddEditUiState = AddEditUiState()
+
+    private fun checkHasChanges(state: AddEditUiState): Boolean {
+        return state.title != originalState.title ||
+                state.brandName != originalState.brandName ||
+                state.dosage != originalState.dosage ||
+                state.schedules != originalState.schedules
+    }
+
+    private fun updateState(update: (AddEditUiState) -> AddEditUiState) {
+        _addEditUiState.update { current ->
+            val next = update(current)
+            next.copy(hasChanges = checkHasChanges(next))
+        }
+    }
+
     fun onTitleChanged(newTitle: String) {
-        _addEditUiState.update { it.copy(title = newTitle, titleError = null) }
+        updateState { it.copy(title = newTitle, titleError = null) }
     }
 
     fun onBrandNameChanged(newBrandName: String) {
-        _addEditUiState.update { it.copy(brandName = newBrandName) }
+        updateState { it.copy(brandName = newBrandName) }
     }
 
     fun onDosageChanged(newDosage: String) {
-        _addEditUiState.update { it.copy(dosage = newDosage) }
+        updateState { it.copy(dosage = newDosage) }
     }
 
     fun loadMedication(id: Long?) {
         if (id == null) {
-            _addEditUiState.value = AddEditUiState()
+            val initialState = AddEditUiState()
+            originalState = initialState
+            _addEditUiState.value = initialState
         } else {
-            _addEditUiState.value = AddEditUiState(medicationId = id, isEditMode = true)
+            val loadingState = AddEditUiState(medicationId = id, isEditMode = true)
+            originalState = loadingState
+            _addEditUiState.value = loadingState
             viewModelScope.launch {
                 val medicationWithSchedules = repository.getWithSchedules(id)
                 if (medicationWithSchedules != null) {
                     val medication = medicationWithSchedules.medication
-                    _addEditUiState.update {
-                        it.copy(
-                            title = medication.title,
-                            brandName = medication.brandName ?: "",
-                            dosage = medication.dosage ?: "",
-                            schedules = medicationWithSchedules.schedules.map { schedule ->
-                                ScheduleUiState(
-                                    id = schedule.id,
-                                    hour = schedule.hour,
-                                    minute = schedule.minute,
-                                    daysOfWeek = schedule.daysOfWeek,
-                                    doses = schedule.doses
-                                )
-                            },
-                            isEditMode = true
-                        )
-                    }
+                    val loadedState = AddEditUiState(
+                        medicationId = id,
+                        title = medication.title,
+                        brandName = medication.brandName ?: "",
+                        dosage = medication.dosage ?: "",
+                        schedules = medicationWithSchedules.schedules.map { schedule ->
+                            ScheduleUiState(
+                                id = schedule.id,
+                                hour = schedule.hour,
+                                minute = schedule.minute,
+                                daysOfWeek = schedule.daysOfWeek,
+                                doses = schedule.doses
+                            )
+                        },
+                        isEditMode = true
+                    )
+                    originalState = loadedState
+                    _addEditUiState.value = loadedState
                 }
             }
         }
@@ -173,11 +195,11 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     fun saveMedication(onSuccess: () -> Unit) {
         val currentState = _addEditUiState.value
         if (currentState.title.isBlank()) {
-            _addEditUiState.update { it.copy(titleError = "Title cannot be empty") }
+            updateState { it.copy(titleError = "Title cannot be empty") }
             return
         }
 
-        _addEditUiState.update { it.copy(isSaving = true) }
+        updateState { it.copy(isSaving = true) }
         viewModelScope.launch {
             val id = currentState.medicationId ?: 0L
 
@@ -198,13 +220,13 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
                 )
             }
             repository.save(medication, schedules)
-            _addEditUiState.update { it.copy(isSaving = false) }
+            updateState { it.copy(isSaving = false) }
             onSuccess()
         }
     }
 
     fun onAddSchedule() {
-        _addEditUiState.update { state ->
+        updateState { state ->
             state.copy(
                 schedules = state.schedules + ScheduleUiState()
             )
@@ -212,7 +234,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun onDeleteSchedule(index: Int) {
-        _addEditUiState.update { state ->
+        updateState { state ->
             val updated = state.schedules.toMutableList()
             if (index in updated.indices) {
                 updated.removeAt(index)
@@ -222,7 +244,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun onScheduleTimeChanged(index: Int, hour: Int, minute: Int) {
-        _addEditUiState.update { state ->
+        updateState { state ->
             val updated = state.schedules.toMutableList()
             if (index in updated.indices) {
                 updated[index] = updated[index].copy(hour = hour, minute = minute)
@@ -232,7 +254,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun onScheduleDayToggled(index: Int, day: DayOfWeek) {
-        _addEditUiState.update { state ->
+        updateState { state ->
             val updated = state.schedules.toMutableList()
             if (index in updated.indices) {
                 val currentDays = updated[index].daysOfWeek
@@ -248,7 +270,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
     }
 
     fun onScheduleDosesChanged(index: Int, doses: Double) {
-        _addEditUiState.update { state ->
+        updateState { state ->
             val updated = state.schedules.toMutableList()
             if (index in updated.indices) {
                 updated[index] = updated[index].copy(doses = doses)
