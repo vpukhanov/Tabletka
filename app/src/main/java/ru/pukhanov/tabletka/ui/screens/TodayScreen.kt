@@ -57,6 +57,7 @@ fun TodayScreen(
 ) {
     val activeGroups = groups.filter { !it.isTaken }
     val takenGroups = groups.filter { it.isTaken }
+    val allTaken = groups.isNotEmpty() && groups.all { it.isTaken }
 
     val lazyListState = rememberLazyListState()
     val isScrollingUpState = lazyListState.isScrollingUp()
@@ -123,6 +124,12 @@ fun TodayScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    if (allTaken) {
+                        item(key = "all_taken_card") {
+                            AllTakenCard()
+                        }
+                    }
+
                     if (activeGroups.isNotEmpty()) {
                         items(
                             items = activeGroups,
@@ -257,6 +264,50 @@ fun TodayScheduleCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun AllTakenCard(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(40.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "All caught up!",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "You've taken all your scheduled medications for today.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
             }
         }
     }
