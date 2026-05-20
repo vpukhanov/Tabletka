@@ -92,7 +92,8 @@ fun MedicationApp(
                     onToggleTakeStatus = { hour, minute, isTaken ->
                         viewModel.toggleTakeStatus(hour, minute, isTaken)
                     },
-                    onAddMedicationClick = { navController.navigate("add_edit?medicationId=-1") }
+                    onAddMedicationClick = { navController.navigate("add_edit?medicationId=-1") },
+                    onSettingsClick = { navController.navigate("settings") }
                 )
             }
             composable(
@@ -162,6 +163,11 @@ fun MedicationApp(
                             onSuccess = { navController.popBackStack() }
                         )
                     },
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+            composable(route = "settings") {
+                SettingsScreen(
                     onBackClick = { navController.popBackStack() }
                 )
             }
