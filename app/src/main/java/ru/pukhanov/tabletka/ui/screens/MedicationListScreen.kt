@@ -67,6 +67,9 @@ fun MedicationListScreen(
     val view = LocalView.current
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
     val lazyListState = rememberLazyListState()
+    val isFabExpanded by remember {
+        derivedStateOf { lazyListState.firstVisibleItemIndex == 0 }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -81,6 +84,24 @@ fun MedicationListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onAddClick,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                expanded = isFabExpanded,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                text = {
+                    Text(text = "Add Medication")
+                }
             )
         }
     ) { innerPadding ->

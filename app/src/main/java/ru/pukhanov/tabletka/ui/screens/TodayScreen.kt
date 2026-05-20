@@ -27,7 +27,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +68,7 @@ import android.view.HapticFeedbackConstants
 @Composable
 fun TodayScreen(
     groups: List<TodayScheduleGroup>,
+    showAddButton: Boolean,
     onToggleTakeStatus: (Int, Int, Boolean) -> Unit,
     onAddMedicationClick: () -> Unit,
     onSettingsClick: () -> Unit,
@@ -111,6 +111,7 @@ fun TodayScreen(
         ) {
             if (groups.isEmpty()) {
                 EmptyTodayState(
+                    showAddButton = showAddButton,
                     onAddClick = onAddMedicationClick,
                     modifier = Modifier.align(Alignment.Center)
                 )
@@ -366,6 +367,7 @@ fun AllTakenCard(
 
 @Composable
 fun EmptyTodayState(
+    showAddButton: Boolean,
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -395,5 +397,20 @@ fun EmptyTodayState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+        if (showAddButton) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onAddClick,
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Add Medication")
+            }
+        }
     }
 }
