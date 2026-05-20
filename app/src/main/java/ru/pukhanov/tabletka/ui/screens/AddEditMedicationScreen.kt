@@ -25,7 +25,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,6 +75,9 @@ import ru.pukhanov.tabletka.ui.viewmodel.ScheduleUiState
 import java.time.DayOfWeek
 import androidx.compose.ui.platform.LocalLocale
 import androidx.core.net.toUri
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.animateContentSize
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,7 +149,7 @@ fun AddEditMedicationScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = if (state.isEditMode) "Edit Medication" else "New Medication",
@@ -178,6 +181,7 @@ fun AddEditMedicationScreen(
             )
         }
     ) { innerPadding ->
+        val view = LocalView.current
         var timePickerIndexToEdit by remember { mutableStateOf<Int?>(null) }
 
         Column(
@@ -236,76 +240,87 @@ fun AddEditMedicationScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            if (state.schedules.isEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Text(
-                        text = "No schedules defined. Add a schedule to set reminders for this medication.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            } else {
-                state.schedules.forEachIndexed { index, schedule ->
-                    key(schedule.id) {
-                        @Suppress("DEPRECATION")
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { dismissValue ->
-                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                                    onDeleteSchedule(index)
-                                    true
-                                } else {
-                                    false
-                                }
-                            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (state.schedules.isEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
-
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                val color = when (dismissState.dismissDirection) {
-                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
-                                    else -> Color.Transparent
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(color, shape = MaterialTheme.shapes.medium)
-                                        .padding(horizontal = 20.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete schedule",
-                                            tint = MaterialTheme.colorScheme.onErrorContainer
-                                        )
+                    ) {
+                        Text(
+                            text = "No schedules defined. Add a schedule to set reminders for this medication.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else {
+                    state.schedules.forEachIndexed { index, schedule ->
+                        key(schedule.id) {
+                            @Suppress("DEPRECATION")
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { dismissValue ->
+                                    if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        onDeleteSchedule(index)
+                                        true
+                                    } else {
+                                        false
                                     }
                                 }
-                            },
-                            enableDismissFromStartToEnd = false,
-                            enableDismissFromEndToStart = true,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            ScheduleCard(
-                                index = index,
-                                schedule = schedule,
-                                onTimeClick = { timePickerIndexToEdit = index },
-                                onDayToggled = onScheduleDayToggle,
-                                onDosesChange = { doses -> onScheduleDosesChange(index, doses) }
                             )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    val color = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                        else -> Color.Transparent
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(color, shape = MaterialTheme.shapes.medium)
+                                            .padding(horizontal = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete schedule",
+                                                tint = MaterialTheme.colorScheme.onErrorContainer
+                                            )
+                                        }
+                                    }
+                                },
+                                enableDismissFromStartToEnd = false,
+                                enableDismissFromEndToStart = true,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                ScheduleCard(
+                                    index = index,
+                                    schedule = schedule,
+                                    onTimeClick = { timePickerIndexToEdit = index },
+                                    onDayToggled = onScheduleDayToggle,
+                                    onDosesChange = { doses -> onScheduleDosesChange(index, doses) }
+                                )
+                            }
                         }
                     }
                 }
             }
 
             OutlinedButton(
-                onClick = onAddSchedule,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                    onAddSchedule()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null)
@@ -448,6 +463,7 @@ private fun ScheduleCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                val view = LocalView.current
                 DayOfWeek.entries.forEach { day ->
                     val isSelected = schedule.daysOfWeek.contains(day)
                     val containerColor = if (isSelected) {
@@ -462,7 +478,10 @@ private fun ScheduleCard(
                     }
 
                     Surface(
-                        onClick = { onDayToggled(index, day) },
+                        onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            onDayToggled(index, day)
+                        },
                         shape = CircleShape,
                         color = containerColor,
                         contentColor = contentColor,

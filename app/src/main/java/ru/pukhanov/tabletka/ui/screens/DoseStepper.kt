@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 
 @Composable
 fun DoseStepper(
@@ -26,6 +28,8 @@ fun DoseStepper(
     onDosesChange: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -37,7 +41,10 @@ fun DoseStepper(
             .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
         IconButton(
-            onClick = { onDosesChange(maxOf(0.5, doses - 0.5)) },
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onDosesChange(maxOf(0.5, doses - 0.5))
+            },
             enabled = doses > 0.5,
             modifier = Modifier.size(32.dp)
         ) {
@@ -64,7 +71,10 @@ fun DoseStepper(
         )
 
         IconButton(
-            onClick = { onDosesChange(doses + 0.5) },
+            onClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                onDosesChange(doses + 0.5)
+            },
             modifier = Modifier.size(32.dp)
         ) {
             Icon(

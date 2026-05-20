@@ -23,7 +23,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -45,6 +46,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ru.pukhanov.tabletka.ui.viewmodel.TodayScheduleGroup
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,8 +70,6 @@ fun TodayScreen(
     groups: List<TodayScheduleGroup>,
     onToggleTakeStatus: (Int, Int, Boolean) -> Unit,
     onAddMedicationClick: () -> Unit,
-    onNavigate: (String) -> Unit,
-    currentRoute: String?,
     modifier: Modifier = Modifier
 ) {
     val activeGroups = groups.filter { !it.isTaken }
@@ -71,7 +87,7 @@ fun TodayScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = "Today's Schedule",
@@ -81,12 +97,6 @@ fun TodayScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
-            )
-        },
-        bottomBar = {
-            TabletkaBottomBar(
-                currentRoute = currentRoute,
-                onNavigate = onNavigate
             )
         },
         floatingActionButton = {
@@ -127,18 +137,21 @@ fun TodayScreen(
                 ) {
                     if (allTaken) {
                         item(key = "all_taken_card") {
-                            AllTakenCard()
+                            AllTakenCard(
+                                modifier = Modifier.animateItem()
+                            )
                         }
                     }
 
                     if (activeGroups.isNotEmpty()) {
                         items(
                             items = activeGroups,
-                            key = { "${it.hour}:${it.minute}_active" }
+                            key = { "${it.hour}:${it.minute}" }
                         ) { group ->
                             TodayScheduleCard(
                                 group = group,
-                                onToggleTakeStatus = onToggleTakeStatus
+                                onToggleTakeStatus = onToggleTakeStatus,
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -149,17 +162,20 @@ fun TodayScreen(
                                 text = "Taken earlier",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                modifier = Modifier.padding(top = 8.dp, start = 4.dp, bottom = 4.dp)
+                                modifier = Modifier
+                                    .animateItem()
+                                    .padding(top = 8.dp, start = 4.dp, bottom = 4.dp)
                             )
                         }
 
                         items(
                             items = takenGroups,
-                            key = { "${it.hour}:${it.minute}_taken" }
+                            key = { "${it.hour}:${it.minute}" }
                         ) { group ->
                             TodayScheduleCard(
                                 group = group,
-                                onToggleTakeStatus = onToggleTakeStatus
+                                onToggleTakeStatus = onToggleTakeStatus,
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -175,13 +191,19 @@ fun TodayScheduleCard(
     onToggleTakeStatus: (Int, Int, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val containerColor = if (group.isTaken) {
-        MaterialTheme.colorScheme.surfaceContainerLowest
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    }
+    val containerColor by animateColorAsState(
+        targetValue = if (group.isTaken) {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        label = "containerColor"
+    )
 
-    val contentAlpha = if (group.isTaken) 0.6f else 1.0f
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (group.isTaken) 0.6f else 1.0f,
+        label = "contentAlpha"
+    )
 
     val checkIcon = if (group.isTaken) {
         Icons.Default.CheckCircle
@@ -189,17 +211,36 @@ fun TodayScheduleCard(
         Icons.Outlined.CheckCircle
     }
 
-    val checkIconTint = if (group.isTaken) {
-        MaterialTheme.colorScheme.tertiary
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
+    val checkIconTint by animateColorAsState(
+        targetValue = if (group.isTaken) {
+            MaterialTheme.colorScheme.tertiary
+        } else {
+            MaterialTheme.colorScheme.primary
+        },
+        label = "checkIconTint"
+    )
+
+    val cardElevation by animateDpAsState(
+        targetValue = if (group.isTaken) 0.dp else 2.dp,
+        label = "cardElevation"
+    )
+
+    val scale by animateFloatAsState(
+        targetValue = if (group.isTaken) 1.15f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "iconScale"
+    )
+
+    val view = LocalView.current
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (group.isTaken) 0.dp else 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = cardElevation)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -217,13 +258,23 @@ fun TodayScheduleCard(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                 )
                 IconButton(
-                    onClick = { onToggleTakeStatus(group.hour, group.minute, group.isTaken) },
+                    onClick = {
+                        val hapticType = if (group.isTaken) {
+                            HapticFeedbackConstants.CLOCK_TICK
+                        } else {
+                            HapticFeedbackConstants.CONFIRM
+                        }
+                        view.performHapticFeedback(hapticType)
+                        onToggleTakeStatus(group.hour, group.minute, group.isTaken)
+                    },
                 ) {
                     Icon(
                         imageVector = checkIcon,
                         contentDescription = if (group.isTaken) "Mark as untaken" else "Mark as taken",
                         tint = checkIconTint.copy(alpha = contentAlpha),
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier
+                            .size(48.dp)
+                            .scale(scale)
                     )
                 }
             }
@@ -274,6 +325,17 @@ fun TodayScheduleCard(
 fun AllTakenCard(
     modifier: Modifier = Modifier
 ) {
+    val scale = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        scale.animateTo(
+            targetValue = 1.0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        )
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -294,7 +356,9 @@ fun AllTakenCard(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier
+                    .size(40.dp)
+                    .scale(scale.value)
             )
             Column(
                 modifier = Modifier.weight(1f)

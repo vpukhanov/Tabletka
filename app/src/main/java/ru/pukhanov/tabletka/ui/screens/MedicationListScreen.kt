@@ -24,7 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ru.pukhanov.tabletka.data.model.Medication
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,10 +62,9 @@ fun MedicationListScreen(
     onAddClick: () -> Unit,
     onMedicationClick: (Long) -> Unit,
     onDeleteMedication: (Medication) -> Unit,
-    onNavigate: (String) -> Unit,
-    currentRoute: String?,
     modifier: Modifier = Modifier
 ) {
+    val view = LocalView.current
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
     val lazyListState = rememberLazyListState()
     val isScrollingUpState = lazyListState.isScrollingUp()
@@ -76,7 +77,7 @@ fun MedicationListScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
                         text = "My Medications",
@@ -86,12 +87,6 @@ fun MedicationListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
-            )
-        },
-        bottomBar = {
-            TabletkaBottomBar(
-                currentRoute = currentRoute,
-                onNavigate = onNavigate
             )
         },
         floatingActionButton = {
@@ -138,6 +133,7 @@ fun MedicationListScreen(
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { dismissValue ->
                                 if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     medicationToDelete = medication
                                 }
                                 false
@@ -168,7 +164,8 @@ fun MedicationListScreen(
                                 }
                             },
                             enableDismissFromStartToEnd = false,
-                            enableDismissFromEndToStart = true
+                            enableDismissFromEndToStart = true,
+                            modifier = Modifier.animateItem()
                         ) {
                             MedicationItemCard(
                                 medication = medication,
@@ -189,6 +186,7 @@ fun MedicationListScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                         onDeleteMedication(medication)
                         medicationToDelete = null
                     }
