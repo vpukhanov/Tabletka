@@ -44,6 +44,7 @@ fun AddEditMedicationScreen(
     state: AddEditUiState,
     onTitleChange: (String) -> Unit,
     onBrandNameChange: (String) -> Unit,
+    onDosageChange: (String) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -109,6 +110,19 @@ fun AddEditMedicationScreen(
                 onValueChange = onBrandNameChange,
                 label = { Text("Brand Name (Optional)") },
                 placeholder = { Text("e.g. Bayer") },
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next
+                ),
+                singleLine = true
+            )
+
+            OutlinedTextField(
+                value = state.dosage,
+                onValueChange = onDosageChange,
+                label = { Text("Dosage (Optional)") },
+                placeholder = { Text("e.g. 500mg") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,

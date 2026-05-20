@@ -60,13 +60,14 @@ class MedicationViewModelTest {
 
     @Test
     fun navigateTo_withMedicationId_loadsMedicationDetails() = runTest {
-        val medication = Medication(id = 42L, title = "Aspirin", brandName = "Bayer")
+        val medication = Medication(id = 42L, title = "Aspirin", brandName = "Bayer", dosage = "500mg")
         fakeDao.insert(medication)
 
         viewModel.navigateTo(Screen.AddEdit(42L))
         assertEquals(Screen.AddEdit(42L), viewModel.currentScreen.value)
         assertEquals("Aspirin", viewModel.addEditUiState.value.title)
         assertEquals("Bayer", viewModel.addEditUiState.value.brandName)
+        assertEquals("500mg", viewModel.addEditUiState.value.dosage)
         assertEquals(true, viewModel.addEditUiState.value.isEditMode)
     }
 
@@ -85,12 +86,14 @@ class MedicationViewModelTest {
         viewModel.navigateTo(Screen.AddEdit(null))
         viewModel.onTitleChanged("Paracetamol")
         viewModel.onBrandNameChanged("Panadol")
+        viewModel.onDosageChanged("500mg")
         viewModel.saveMedication()
 
         val list = fakeDao.getAll().first()
         assertEquals(1, list.size)
         assertEquals("Paracetamol", list[0].title)
         assertEquals("Panadol", list[0].brandName)
+        assertEquals("500mg", list[0].dosage)
         
         // Navigation should go back to list
         assertEquals(Screen.List, viewModel.currentScreen.value)
@@ -98,12 +101,13 @@ class MedicationViewModelTest {
 
     @Test
     fun saveExistingMedication_success() = runTest {
-        val original = Medication(id = 10L, title = "Ibuprofen", brandName = "Nurofen")
+        val original = Medication(id = 10L, title = "Ibuprofen", brandName = "Nurofen", dosage = "200mg")
         fakeDao.insert(original)
 
         viewModel.navigateTo(Screen.AddEdit(10L))
         viewModel.onTitleChanged("Ibuprofen Forte")
         viewModel.onBrandNameChanged("Advil")
+        viewModel.onDosageChanged("400mg")
         viewModel.saveMedication()
 
         val list = fakeDao.getAll().first()
@@ -111,6 +115,7 @@ class MedicationViewModelTest {
         assertEquals(10L, list[0].id)
         assertEquals("Ibuprofen Forte", list[0].title)
         assertEquals("Advil", list[0].brandName)
+        assertEquals("400mg", list[0].dosage)
         
         // Navigation should go back to list
         assertEquals(Screen.List, viewModel.currentScreen.value)

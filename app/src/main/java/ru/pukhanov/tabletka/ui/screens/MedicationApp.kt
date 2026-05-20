@@ -42,6 +42,7 @@ fun MedicationApp(
                     state = addEditState,
                     onTitleChange = { viewModel.onTitleChanged(it) },
                     onBrandNameChange = { viewModel.onBrandNameChanged(it) },
+                    onDosageChange = { viewModel.onDosageChanged(it) },
                     onSaveClick = { viewModel.saveMedication() },
                     onBackClick = { viewModel.navigateTo(Screen.List) }
                 )

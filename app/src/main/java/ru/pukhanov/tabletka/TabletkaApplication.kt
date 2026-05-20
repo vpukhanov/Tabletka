@@ -11,7 +11,9 @@ class TabletkaApplication : Application() {
             this,
             AppDatabase::class.java,
             "tabletka_database"
-        ).build()
+        )
+        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .build()
     }
 
     val repository: MedicationRepository by lazy {

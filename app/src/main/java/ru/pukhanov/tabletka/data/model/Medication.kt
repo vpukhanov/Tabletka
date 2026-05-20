@@ -8,5 +8,6 @@ data class Medication(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val title: String,
-    val brandName: String? = null
+    val brandName: String? = null,
+    val dosage: String? = null
 )

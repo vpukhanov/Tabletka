@@ -16,6 +16,7 @@ import ru.pukhanov.tabletka.ui.screens.Screen
 data class AddEditUiState(
     val title: String = "",
     val brandName: String = "",
+    val dosage: String = "",
     val titleError: String? = null,
     val isSaving: Boolean = false,
     val isEditMode: Boolean = false
@@ -51,6 +52,10 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
         _addEditUiState.update { it.copy(brandName = newBrandName) }
     }
 
+    fun onDosageChanged(newDosage: String) {
+        _addEditUiState.update { it.copy(dosage = newDosage) }
+    }
+
     fun loadMedication(id: Long?) {
         if (id == null) {
             _addEditUiState.value = AddEditUiState()
@@ -63,6 +68,7 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
                         it.copy(
                             title = medication.title,
                             brandName = medication.brandName ?: "",
+                            dosage = medication.dosage ?: "",
                             isEditMode = true
                         )
                     }
@@ -86,7 +92,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
             val medication = Medication(
                 id = id,
                 title = currentState.title.trim(),
-                brandName = currentState.brandName.trim().ifBlank { null }
+                brandName = currentState.brandName.trim().ifBlank { null },
+                dosage = currentState.dosage.trim().ifBlank { null }
             )
             repository.insert(medication)
             _addEditUiState.update { it.copy(isSaving = false) }
