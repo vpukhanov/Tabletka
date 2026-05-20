@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.pukhanov.tabletka.data.model.Medication
 import ru.pukhanov.tabletka.data.model.MedicationSchedule
-import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import ru.pukhanov.tabletka.data.model.MedicationTake
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
 
@@ -27,7 +26,7 @@ data class ScheduleUiState(
     val id: Long = -UUID.randomUUID().mostSignificantBits.absoluteValue,
     val hour: Int = 8,
     val minute: Int = 0,
-    val daysOfWeek: Set<DayOfWeek> = DayOfWeek.values().toSet(),
+    val daysOfWeek: Set<DayOfWeek> = DayOfWeek.entries.toSet(),
     val doses: Double = 1.0
 )
 

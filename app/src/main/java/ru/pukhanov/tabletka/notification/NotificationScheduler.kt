@@ -10,6 +10,7 @@ import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.ZoneId
+import androidx.core.content.edit
 
 class NotificationScheduler(private val context: Context) {
 
@@ -92,7 +93,7 @@ class NotificationScheduler(private val context: Context) {
         }
 
         // 4. Save the scheduled request codes
-        sharedPrefs.edit().putStringSet("scheduled_request_codes", scheduledCodes).apply()
+        sharedPrefs.edit { putStringSet("scheduled_request_codes", scheduledCodes) }
     }
 
     private fun cancelAllScheduledAlarms() {
@@ -111,7 +112,7 @@ class NotificationScheduler(private val context: Context) {
                 pendingIntent.cancel()
             }
         }
-        sharedPrefs.edit().remove("scheduled_request_codes").apply()
+        sharedPrefs.edit { remove("scheduled_request_codes") }
     }
 
     fun rescheduleAlarm(dayOfWeekValue: Int, hour: Int, minute: Int) {

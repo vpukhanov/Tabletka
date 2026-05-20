@@ -49,15 +49,13 @@ class TabletkaApplication : Application() {
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.medication_notifications_channel_name)
-            val descriptionText = getString(R.string.medication_notifications_channel_desc)
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel("medication_reminders", name, importance).apply {
-                description = descriptionText
-            }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = getString(R.string.medication_notifications_channel_name)
+        val descriptionText = getString(R.string.medication_notifications_channel_desc)
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel("medication_reminders", name, importance).apply {
+            description = descriptionText
         }
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 }

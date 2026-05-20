@@ -44,7 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ru.pukhanov.tabletka.ui.viewmodel.TodayScheduleGroup
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -212,7 +212,7 @@ fun TodayScheduleCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = String.format(Locale.getDefault(), "%02d:%02d", group.hour, group.minute),
+                    text = String.format(LocalLocale.current.platformLocale, "%02d:%02d", group.hour, group.minute),
                     style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                 )

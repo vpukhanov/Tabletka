@@ -1,7 +1,7 @@
 package ru.pukhanov.tabletka.ui.screens
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -33,7 +33,7 @@ fun TabletkaBottomBar(
             onClick = { onNavigate("medications") },
             icon = {
                 Icon(
-                    imageVector = Icons.Default.List,
+                    imageVector = Icons.Default.Medication,
                     contentDescription = "All Medications"
                 )
             },

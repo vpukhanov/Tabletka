@@ -23,16 +23,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -77,7 +73,8 @@ import androidx.core.content.ContextCompat
 import ru.pukhanov.tabletka.ui.viewmodel.AddEditUiState
 import ru.pukhanov.tabletka.ui.viewmodel.ScheduleUiState
 import java.time.DayOfWeek
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
+import androidx.core.net.toUri
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -371,7 +368,7 @@ fun AddEditMedicationScreen(
                         onClick = {
                             showExactAlarmDialog = false
                             val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                data = Uri.parse("package:${context.packageName}")
+                                data = "package:${context.packageName}".toUri()
                             }
                             try {
                                 context.startActivity(intent)
@@ -433,7 +430,7 @@ private fun ScheduleCard(
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text(
-                        text = String.format(Locale.getDefault(), "%02d:%02d", schedule.hour, schedule.minute),
+                        text = String.format(LocalLocale.current.platformLocale, "%02d:%02d", schedule.hour, schedule.minute),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -451,7 +448,7 @@ private fun ScheduleCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                DayOfWeek.values().forEach { day ->
+                DayOfWeek.entries.forEach { day ->
                     val isSelected = schedule.daysOfWeek.contains(day)
                     val containerColor = if (isSelected) {
                         MaterialTheme.colorScheme.primary
