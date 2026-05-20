@@ -17,6 +17,7 @@ import ru.pukhanov.tabletka.data.local.database.AppDatabase
 import ru.pukhanov.tabletka.data.model.Medication
 import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
+import ru.pukhanov.tabletka.data.model.MedicationTake
 import java.io.IOException
 import java.time.DayOfWeek
 
@@ -161,5 +162,33 @@ class MedicationDaoTest {
 
         val retrieved = medicationDao.getMedicationWithSchedules(med.id)
         assertNull(retrieved)
+    }
+
+    @Test
+    fun insertAndGetAndCancelTakes() = runBlocking {
+        val date = "2026-05-20"
+        val take1 = MedicationTake(date = date, hour = 8, minute = 0)
+        val take2 = MedicationTake(date = date, hour = 14, minute = 30)
+
+        // Insert takes
+        medicationDao.insertTake(take1)
+        medicationDao.insertTake(take2)
+
+        val takes = medicationDao.getTakesForDate(date).first()
+        assertEquals(2, takes.size)
+        
+        // Assert sorting/existence
+        val retrievedTake1 = takes.find { it.hour == 8 && it.minute == 0 }
+        assertNotNull(retrievedTake1)
+        
+        val retrievedTake2 = takes.find { it.hour == 14 && it.minute == 30 }
+        assertNotNull(retrievedTake2)
+
+        // Cancel a take
+        medicationDao.deleteTake(date, 8, 0)
+        val takesAfterCancel = medicationDao.getTakesForDate(date).first()
+        assertEquals(1, takesAfterCancel.size)
+        assertNull(takesAfterCancel.find { it.hour == 8 && it.minute == 0 })
+        assertNotNull(takesAfterCancel.find { it.hour == 14 && it.minute == 30 })
     }
 }

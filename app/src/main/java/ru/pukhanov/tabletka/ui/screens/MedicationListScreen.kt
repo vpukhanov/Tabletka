@@ -58,6 +58,7 @@ fun MedicationListScreen(
     onAddClick: () -> Unit,
     onMedicationClick: (Long) -> Unit,
     onDeleteMedication: (Medication) -> Unit,
+    onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
@@ -75,6 +76,12 @@ fun MedicationListScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
+            )
+        },
+        bottomBar = {
+            TabletkaBottomBar(
+                currentScreen = Screen.List,
+                onNavigate = onNavigate
             )
         },
         floatingActionButton = {

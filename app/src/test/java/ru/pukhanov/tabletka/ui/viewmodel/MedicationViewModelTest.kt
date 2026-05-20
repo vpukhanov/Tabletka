@@ -19,9 +19,11 @@ import ru.pukhanov.tabletka.data.local.dao.MedicationDao
 import ru.pukhanov.tabletka.data.model.Medication
 import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
+import ru.pukhanov.tabletka.data.model.MedicationTake
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
 import ru.pukhanov.tabletka.ui.screens.Screen
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MedicationViewModelTest {
@@ -47,7 +49,7 @@ class MedicationViewModelTest {
 
     @Test
     fun initialState_isCorrect() = runTest {
-        assertEquals(Screen.List, viewModel.currentScreen.value)
+        assertEquals(Screen.Today, viewModel.currentScreen.value)
         assertEquals(emptyList<Medication>(), viewModel.medications.value)
         assertEquals(AddEditUiState(), viewModel.addEditUiState.value)
     }
@@ -270,19 +272,105 @@ class MedicationViewModelTest {
         assertEquals(30, retrieved?.schedules?.first()?.minute)
         assertEquals(3.0, retrieved?.schedules?.first()?.doses ?: 0.0, 0.0)
     }
+
+    @Test
+    fun todayScheduleGroups_filtersByDayOfWeek() = runTest {
+        viewModel.setCurrentDate(LocalDate.of(2026, 5, 20)) // Wednesday
+        
+        val med1 = Medication(id = 1L, title = "Aspirin")
+        val schedules1 = listOf(
+            MedicationSchedule(id = 1L, medicationId = 1L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 1.0)
+        )
+        fakeDao.saveMedicationWithSchedules(med1, schedules1)
+        
+        val med2 = Medication(id = 2L, title = "Ibuprofen")
+        val schedules2 = listOf(
+            MedicationSchedule(id = 2L, medicationId = 2L, hour = 12, minute = 0, daysOfWeek = setOf(DayOfWeek.SUNDAY), doses = 2.0)
+        )
+        fakeDao.saveMedicationWithSchedules(med2, schedules2)
+
+        val groups = viewModel.todayScheduleGroups.first()
+        assertEquals(1, groups.size)
+        assertEquals(8, groups[0].hour)
+        assertEquals(0, groups[0].minute)
+        assertEquals(1, groups[0].medications.size)
+        assertEquals("Aspirin", groups[0].medications[0].title)
+    }
+
+    @Test
+    fun todayScheduleGroups_groupsByTimeAndSorts() = runTest {
+        viewModel.setCurrentDate(LocalDate.of(2026, 5, 20)) // Wednesday
+        
+        val med1 = Medication(id = 1L, title = "Aspirin")
+        val schedules1 = listOf(
+            MedicationSchedule(id = 1L, medicationId = 1L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 1.0),
+            MedicationSchedule(id = 2L, medicationId = 1L, hour = 20, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 1.5)
+        )
+        fakeDao.saveMedicationWithSchedules(med1, schedules1)
+        
+        val med2 = Medication(id = 2L, title = "Ibuprofen")
+        val schedules2 = listOf(
+            MedicationSchedule(id = 3L, medicationId = 2L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 2.0)
+        )
+        fakeDao.saveMedicationWithSchedules(med2, schedules2)
+
+        val groups = viewModel.todayScheduleGroups.first()
+        assertEquals(2, groups.size)
+        
+        // First group should be 08:00
+        assertEquals(8, groups[0].hour)
+        assertEquals(0, groups[0].minute)
+        assertEquals(2, groups[0].medications.size)
+        
+        // Second group should be 20:00
+        assertEquals(20, groups[1].hour)
+        assertEquals(0, groups[1].minute)
+        assertEquals(1, groups[1].medications.size)
+    }
+
+    @Test
+    fun toggleTakeStatus_updatesTakenState() = runTest {
+        viewModel.setCurrentDate(LocalDate.of(2026, 5, 20)) // Wednesday
+        
+        val med = Medication(id = 1L, title = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(id = 1L, medicationId = 1L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 1.0)
+        )
+        fakeDao.saveMedicationWithSchedules(med, schedules)
+
+        // Initially not taken
+        assertEquals(false, viewModel.todayScheduleGroups.first()[0].isTaken)
+
+        // Toggle to taken
+        viewModel.toggleTakeStatus(8, 0, isCurrentlyTaken = false)
+        assertEquals(true, viewModel.todayScheduleGroups.first()[0].isTaken)
+
+        // Toggle back to not taken
+        viewModel.toggleTakeStatus(8, 0, isCurrentlyTaken = true)
+        assertEquals(false, viewModel.todayScheduleGroups.first()[0].isTaken)
+    }
 }
 
 class FakeMedicationDao : MedicationDao {
     private val medicationsMap = mutableMapOf<Long, Medication>()
     private val schedulesMap = mutableMapOf<Long, List<MedicationSchedule>>()
     private val _flow = MutableStateFlow<List<Medication>>(emptyList())
+    private val _allWithSchedulesFlow = MutableStateFlow<List<MedicationWithSchedules>>(emptyList())
+    private val takesFlowsMap = mutableMapOf<String, MutableStateFlow<List<MedicationTake>>>()
     private var nextId = 1L
+
+    private fun updateAllWithSchedules() {
+        _allWithSchedulesFlow.value = medicationsMap.map { (id, medication) ->
+            MedicationWithSchedules(medication, schedulesMap[id] ?: emptyList())
+        }
+    }
 
     override suspend fun insert(medication: Medication): Long {
         val id = if (medication.id == 0L) nextId++ else medication.id
         val saved = medication.copy(id = id)
         medicationsMap[id] = saved
         _flow.value = medicationsMap.values.toList().reversed()
+        updateAllWithSchedules()
         return id
     }
 
@@ -298,6 +386,7 @@ class FakeMedicationDao : MedicationDao {
         medicationsMap.remove(medication.id)
         schedulesMap.remove(medication.id)
         _flow.value = medicationsMap.values.toList().reversed()
+        updateAllWithSchedules()
     }
 
     override suspend fun insertSchedules(schedules: List<MedicationSchedule>) {
@@ -306,6 +395,7 @@ class FakeMedicationDao : MedicationDao {
 
     override suspend fun deleteSchedulesForMedication(medicationId: Long) {
         schedulesMap.remove(medicationId)
+        updateAllWithSchedules()
     }
 
     override suspend fun getMedicationWithSchedules(id: Long): MedicationWithSchedules? {
@@ -314,9 +404,28 @@ class FakeMedicationDao : MedicationDao {
         return MedicationWithSchedules(medication, schedules)
     }
 
+    override fun getAllWithSchedules(): Flow<List<MedicationWithSchedules>> {
+        return _allWithSchedulesFlow
+    }
+
+    override fun getTakesForDate(date: String): Flow<List<MedicationTake>> {
+        return takesFlowsMap.getOrPut(date) { MutableStateFlow(emptyList()) }
+    }
+
+    override suspend fun insertTake(take: MedicationTake) {
+        val flow = takesFlowsMap.getOrPut(take.date) { MutableStateFlow(emptyList()) }
+        flow.value = (flow.value.filterNot { it.hour == take.hour && it.minute == take.minute } + take)
+    }
+
+    override suspend fun deleteTake(date: String, hour: Int, minute: Int) {
+        val flow = takesFlowsMap[date] ?: return
+        flow.value = flow.value.filterNot { it.hour == hour && it.minute == minute }
+    }
+
     override suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>) {
         val id = insert(medication)
         val targetId = if (medication.id == 0L) id else medication.id
         schedulesMap[targetId] = schedules.map { it.copy(medicationId = targetId) }
+        updateAllWithSchedules()
     }
 }

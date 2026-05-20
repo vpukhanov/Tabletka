@@ -19,6 +19,7 @@ fun MedicationApp(
     val currentScreen by viewModel.currentScreen.collectAsState()
     val medications by viewModel.medications.collectAsState()
     val addEditState by viewModel.addEditUiState.collectAsState()
+    val todayGroups by viewModel.todayScheduleGroups.collectAsState()
 
     AnimatedContent(
         targetState = currentScreen,
@@ -29,12 +30,23 @@ fun MedicationApp(
         modifier = modifier.fillMaxSize()
     ) { screen ->
         when (screen) {
+            is Screen.Today -> {
+                TodayScreen(
+                    groups = todayGroups,
+                    onToggleTakeStatus = { hour, minute, isTaken ->
+                        viewModel.toggleTakeStatus(hour, minute, isTaken)
+                    },
+                    onAddMedicationClick = { viewModel.navigateTo(Screen.AddEdit(null)) },
+                    onNavigate = { viewModel.navigateTo(it) }
+                )
+            }
             is Screen.List -> {
                 MedicationListScreen(
                     medications = medications,
                     onAddClick = { viewModel.navigateTo(Screen.AddEdit(null)) },
                     onMedicationClick = { id -> viewModel.navigateTo(Screen.AddEdit(id)) },
-                    onDeleteMedication = { medication -> viewModel.deleteMedication(medication) }
+                    onDeleteMedication = { medication -> viewModel.deleteMedication(medication) },
+                    onNavigate = { viewModel.navigateTo(it) }
                 )
             }
             is Screen.AddEdit -> {
@@ -55,7 +67,7 @@ fun MedicationApp(
                         viewModel.onScheduleDosesChanged(index, doses)
                     },
                     onSaveClick = { viewModel.saveMedication() },
-                    onBackClick = { viewModel.navigateTo(Screen.List) }
+                    onBackClick = { viewModel.navigateTo(Screen.Today) } // Back from add/edit should go to Today screen since it's main
                 )
             }
         }

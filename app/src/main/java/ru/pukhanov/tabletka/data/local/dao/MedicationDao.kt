@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import ru.pukhanov.tabletka.data.model.Medication
 import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
+import ru.pukhanov.tabletka.data.model.MedicationTake
 
 @Dao
 interface MedicationDao {
@@ -36,6 +37,19 @@ interface MedicationDao {
     suspend fun getMedicationWithSchedules(id: Long): MedicationWithSchedules?
 
     @Transaction
+    @Query("SELECT * FROM medications")
+    fun getAllWithSchedules(): Flow<List<MedicationWithSchedules>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTake(take: MedicationTake)
+
+    @Query("DELETE FROM medication_takes WHERE date = :date AND hour = :hour AND minute = :minute")
+    suspend fun deleteTake(date: String, hour: Int, minute: Int)
+
+    @Query("SELECT * FROM medication_takes WHERE date = :date")
+    fun getTakesForDate(date: String): Flow<List<MedicationTake>>
+
+    @Transaction
     suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>) {
         val medicationId = insert(medication)
         val targetMedicationId = if (medication.id == 0L) medicationId else medication.id
@@ -44,3 +58,4 @@ interface MedicationDao {
         insertSchedules(schedulesToInsert)
     }
 }
+
