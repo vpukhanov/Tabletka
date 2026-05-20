@@ -51,6 +51,9 @@ fun MedicationApp(
                     onScheduleDayToggle = { index, day ->
                         viewModel.onScheduleDayToggled(index, day)
                     },
+                    onScheduleDosesChange = { index, doses ->
+                        viewModel.onScheduleDosesChanged(index, doses)
+                    },
                     onSaveClick = { viewModel.saveMedication() },
                     onBackClick = { viewModel.navigateTo(Screen.List) }
                 )

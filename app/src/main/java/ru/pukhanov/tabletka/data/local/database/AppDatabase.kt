@@ -9,7 +9,7 @@ import ru.pukhanov.tabletka.data.model.Medication
 import ru.pukhanov.tabletka.data.model.MedicationSchedule
 import ru.pukhanov.tabletka.data.local.dao.MedicationDao
 
-@Database(entities = [Medication::class, MedicationSchedule::class], version = 3, exportSchema = false)
+@Database(entities = [Medication::class, MedicationSchedule::class], version = 4, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun medicationDao(): MedicationDao
@@ -34,6 +34,12 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 """.trimIndent())
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_medication_schedules_medicationId` ON `medication_schedules` (`medicationId`)")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medication_schedules ADD COLUMN doses REAL NOT NULL DEFAULT 1.0")
             }
         }
     }

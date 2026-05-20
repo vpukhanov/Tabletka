@@ -24,5 +24,6 @@ data class MedicationSchedule(
     val medicationId: Long = 0L,
     val hour: Int,
     val minute: Int,
-    val daysOfWeek: Set<DayOfWeek>
+    val daysOfWeek: Set<DayOfWeek>,
+    val doses: Double = 1.0
 )

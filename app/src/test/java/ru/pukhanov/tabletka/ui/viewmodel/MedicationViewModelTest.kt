@@ -222,6 +222,54 @@ class MedicationViewModelTest {
         assertEquals(30, retrieved?.schedules?.first()?.minute)
         assertEquals(DayOfWeek.values().toSet() - DayOfWeek.WEDNESDAY, retrieved?.schedules?.first()?.daysOfWeek)
     }
+
+    @Test
+    fun onScheduleDosesChanged_updatesDosesCorrectly() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onAddSchedule()
+        viewModel.onScheduleDosesChanged(index = 0, doses = 2.5)
+
+        val schedules = viewModel.addEditUiState.value.schedules
+        assertEquals(2.5, schedules[0].doses, 0.0)
+    }
+
+    @Test
+    fun navigateTo_withMedicationId_loadsSchedulesWithCustomDoses() = runTest {
+        val medication = Medication(id = 42L, title = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(id = 1L, medicationId = 42L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY), doses = 1.5)
+        )
+        fakeDao.saveMedicationWithSchedules(medication, schedules)
+
+        viewModel.navigateTo(Screen.AddEdit(42L))
+        val state = viewModel.addEditUiState.value
+        assertEquals("Aspirin", state.title)
+        assertEquals(1, state.schedules.size)
+        assertEquals(8, state.schedules[0].hour)
+        assertEquals(setOf(DayOfWeek.MONDAY), state.schedules[0].daysOfWeek)
+        assertEquals(1.5, state.schedules[0].doses, 0.0)
+    }
+
+    @Test
+    fun saveNewMedication_savesSchedulesWithCustomDoses() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onTitleChanged("Ibuprofen")
+        viewModel.onAddSchedule()
+        viewModel.onScheduleTimeChanged(index = 0, hour = 12, minute = 30)
+        viewModel.onScheduleDosesChanged(index = 0, doses = 3.0)
+        viewModel.saveMedication()
+
+        val all = fakeDao.getAll().first()
+        assertEquals(1, all.size)
+        val medId = all[0].id
+
+        val retrieved = fakeDao.getMedicationWithSchedules(medId)
+        assertNotNull(retrieved)
+        assertEquals(1, retrieved?.schedules?.size)
+        assertEquals(12, retrieved?.schedules?.first()?.hour)
+        assertEquals(30, retrieved?.schedules?.first()?.minute)
+        assertEquals(3.0, retrieved?.schedules?.first()?.doses ?: 0.0, 0.0)
+    }
 }
 
 class FakeMedicationDao : MedicationDao {

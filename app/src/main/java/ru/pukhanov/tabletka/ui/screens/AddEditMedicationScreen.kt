@@ -77,6 +77,7 @@ fun AddEditMedicationScreen(
     onDeleteSchedule: (Int) -> Unit,
     onScheduleTimeChange: (Int, Int, Int) -> Unit,
     onScheduleDayToggle: (Int, DayOfWeek) -> Unit,
+    onScheduleDosesChange: (Int, Double) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -234,7 +235,8 @@ fun AddEditMedicationScreen(
                                 index = index,
                                 schedule = schedule,
                                 onTimeClick = { timePickerIndexToEdit = index },
-                                onDayToggled = onScheduleDayToggle
+                                onDayToggled = onScheduleDayToggle,
+                                onDosesChange = { doses -> onScheduleDosesChange(index, doses) }
                             )
                         }
                     }
@@ -291,6 +293,7 @@ private fun ScheduleCard(
     schedule: ScheduleUiState,
     onTimeClick: () -> Unit,
     onDayToggled: (Int, DayOfWeek) -> Unit,
+    onDosesChange: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -305,6 +308,7 @@ private fun ScheduleCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(
@@ -319,6 +323,11 @@ private fun ScheduleCard(
                         )
                     )
                 }
+
+                DoseStepper(
+                    doses = schedule.doses,
+                    onDosesChange = onDosesChange
+                )
             }
 
             Row(

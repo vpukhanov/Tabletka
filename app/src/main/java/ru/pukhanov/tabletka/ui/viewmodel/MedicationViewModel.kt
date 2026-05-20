@@ -22,7 +22,8 @@ data class ScheduleUiState(
     val id: Long = -UUID.randomUUID().mostSignificantBits.absoluteValue,
     val hour: Int = 8,
     val minute: Int = 0,
-    val daysOfWeek: Set<DayOfWeek> = DayOfWeek.values().toSet()
+    val daysOfWeek: Set<DayOfWeek> = DayOfWeek.values().toSet(),
+    val doses: Double = 1.0
 )
 
 data class AddEditUiState(
@@ -89,7 +90,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
                                     id = schedule.id,
                                     hour = schedule.hour,
                                     minute = schedule.minute,
-                                    daysOfWeek = schedule.daysOfWeek
+                                    daysOfWeek = schedule.daysOfWeek,
+                                    doses = schedule.doses
                                 )
                             },
                             isEditMode = true
@@ -124,7 +126,8 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
                     medicationId = id,
                     hour = scheduleState.hour,
                     minute = scheduleState.minute,
-                    daysOfWeek = scheduleState.daysOfWeek
+                    daysOfWeek = scheduleState.daysOfWeek,
+                    doses = scheduleState.doses
                 )
             }
             repository.save(medication, schedules)
@@ -172,6 +175,16 @@ class MedicationViewModel(private val repository: MedicationRepository) : ViewMo
                     currentDays + day
                 }
                 updated[index] = updated[index].copy(daysOfWeek = newDays)
+            }
+            state.copy(schedules = updated)
+        }
+    }
+
+    fun onScheduleDosesChanged(index: Int, doses: Double) {
+        _addEditUiState.update { state ->
+            val updated = state.schedules.toMutableList()
+            if (index in updated.indices) {
+                updated[index] = updated[index].copy(doses = doses)
             }
             state.copy(schedules = updated)
         }
