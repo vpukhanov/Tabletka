@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -71,7 +72,7 @@ class MedicationDaoTest {
         medicationDao.insert(med1)
         medicationDao.insert(med2)
 
-        val all = medicationDao.getAll()
+        val all = medicationDao.getAll().first()
         assertEquals(2, all.size)
         assertEquals("Medication 2", all[0].title)
         assertEquals("Medication 1", all[1].title)
