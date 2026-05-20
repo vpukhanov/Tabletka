@@ -19,6 +19,19 @@ import androidx.navigation.navArgument
 import ru.pukhanov.tabletka.ui.viewmodel.MedicationViewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun MedicationApp(
@@ -51,6 +64,30 @@ fun MedicationApp(
                 TabletkaBottomBar(
                     currentRoute = currentRoute,
                     onNavigate = onNavigate
+                )
+            }
+        },
+        floatingActionButton = {
+            AnimatedVisibility(
+                visible = showBottomBar,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("add_edit?medicationId=-1") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    expanded = true,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    },
+                    text = {
+                        Text(text = "Add Medication")
+                    }
                 )
             }
         },
