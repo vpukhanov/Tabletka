@@ -26,7 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -62,6 +64,13 @@ fun MedicationListScreen(
     modifier: Modifier = Modifier
 ) {
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
+    val lazyListState = rememberLazyListState()
+    val isScrollingUpState = lazyListState.isScrollingUp()
+    val isFabExpanded by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex == 0 && lazyListState.firstVisibleItemScrollOffset == 0 || isScrollingUpState.value
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -85,17 +94,22 @@ fun MedicationListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onAddClick,
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Medication",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                expanded = isFabExpanded,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                text = {
+                    Text(text = "Add Medication")
+                }
+            )
         }
     ) { innerPadding ->
         Box(
@@ -110,6 +124,7 @@ fun MedicationListScreen(
                 )
             } else {
                 LazyColumn(
+                    state = lazyListState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
