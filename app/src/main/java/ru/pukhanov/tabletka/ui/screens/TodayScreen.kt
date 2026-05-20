@@ -182,7 +182,7 @@ fun TodayScheduleCard(
     }
 
     val checkIconTint = if (group.isTaken) {
-        Color(0xFF2E7D32) // Soft forest green
+        MaterialTheme.colorScheme.tertiary
     } else {
         MaterialTheme.colorScheme.primary
     }
@@ -199,23 +199,23 @@ fun TodayScheduleCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = String.format(Locale.getDefault(), "%02d:%02d", group.hour, group.minute),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                 )
                 IconButton(
-                    onClick = { onToggleTakeStatus(group.hour, group.minute, group.isTaken) }
+                    onClick = { onToggleTakeStatus(group.hour, group.minute, group.isTaken) },
                 ) {
                     Icon(
                         imageVector = checkIcon,
                         contentDescription = if (group.isTaken) "Mark as untaken" else "Mark as taken",
                         tint = checkIconTint.copy(alpha = contentAlpha),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(48.dp)
                     )
                 }
             }
@@ -229,15 +229,19 @@ fun TodayScheduleCard(
                     MaterialTheme.colorScheme.surface
                 }
 
+                val isLast = index == group.medications.lastIndex
+                val topPadding = if (group.isTaken) 4.dp else 10.dp
+                val bottomPadding = if (isLast && group.isTaken) 10.dp else topPadding
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(rowBgColor)
                         .padding(
                             start = 16.dp,
-                            top = 10.dp,
+                            top = topPadding,
                             end = 16.dp,
-                            bottom = 10.dp
+                            bottom = bottomPadding
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

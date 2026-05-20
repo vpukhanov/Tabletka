@@ -21,7 +21,7 @@ val bodyFontFamily = FontFamily(
 
 val displayFontFamily = FontFamily(
     Font(
-        googleFont = GoogleFont("Newsreader"),
+        googleFont = GoogleFont("Noto Serif"),
         fontProvider = provider,
     )
 )
