@@ -1,14 +1,24 @@
 package ru.pukhanov.tabletka.ui.screens
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.material3.Scaffold
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,19 +26,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import ru.pukhanov.tabletka.ui.viewmodel.MedicationViewModel
+import ru.pukhanov.tabletka.ui.viewmodel.TodayViewModel
+import ru.pukhanov.tabletka.ui.viewmodel.MedicationListViewModel
+import ru.pukhanov.tabletka.ui.viewmodel.AddEditMedicationViewModel
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
+import java.time.LocalDate
 
 @Composable
 fun MedicationApp(
-    viewModel: MedicationViewModel,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
-    val medications by viewModel.medications.collectAsState()
-    val addEditState by viewModel.addEditUiState.collectAsState()
-    val todayGroups by viewModel.todayScheduleGroups.collectAsState()
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
@@ -87,6 +96,40 @@ fun MedicationApp(
                     }
                 }
             ) {
+                val viewModel: TodayViewModel = hiltViewModel()
+                val todayGroups by viewModel.todayScheduleGroups.collectAsState()
+                val medications by viewModel.medications.collectAsState()
+
+                val context = LocalContext.current
+                DisposableEffect(context, viewModel) {
+                    val filter = IntentFilter().apply {
+                        addAction(Intent.ACTION_DATE_CHANGED)
+                        addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                    }
+                    val receiver = object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            viewModel.setCurrentDate(LocalDate.now())
+                        }
+                    }
+                    context.registerReceiver(receiver, filter)
+                    onDispose {
+                        context.unregisterReceiver(receiver)
+                    }
+                }
+
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner, viewModel) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_START) {
+                            viewModel.setCurrentDate(LocalDate.now())
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
+
                 TodayScreen(
                     groups = todayGroups,
                     showAddButton = medications.isEmpty(),
@@ -129,6 +172,9 @@ fun MedicationApp(
                     }
                 }
             ) {
+                val viewModel: MedicationListViewModel = hiltViewModel()
+                val medications by viewModel.medications.collectAsState()
+
                 MedicationListScreen(
                     medications = medications,
                     onAddClick = { navController.navigate("add_edit?medicationId=-1") },
@@ -147,6 +193,9 @@ fun MedicationApp(
             ) { backStackEntry ->
                 val medicationIdArg = backStackEntry.arguments?.getLong("medicationId")
                 val medicationId = if (medicationIdArg == -1L || medicationIdArg == null) null else medicationIdArg
+
+                val viewModel: AddEditMedicationViewModel = hiltViewModel()
+                val addEditState by viewModel.addEditUiState.collectAsState()
 
                 LaunchedEffect(medicationId) {
                     viewModel.loadMedication(medicationId)

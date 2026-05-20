@@ -4,37 +4,21 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
-import androidx.room.Room
+import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import ru.pukhanov.tabletka.data.local.database.AppDatabase
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
 import ru.pukhanov.tabletka.notification.NotificationScheduler
+import javax.inject.Inject
 
+@HiltAndroidApp
 class TabletkaApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    val database: AppDatabase by lazy {
-        Room.databaseBuilder(
-            this,
-            AppDatabase::class.java,
-            "tabletka_database"
-        )
-        .addMigrations(
-            AppDatabase.MIGRATION_1_2,
-            AppDatabase.MIGRATION_2_3,
-            AppDatabase.MIGRATION_3_4,
-            AppDatabase.MIGRATION_4_5
-        )
-        .build()
-    }
-
-    val repository: MedicationRepository by lazy {
-        MedicationRepository(database.medicationDao())
-    }
+    @Inject
+    lateinit var repository: MedicationRepository
 
     override fun onCreate() {
         super.onCreate()
