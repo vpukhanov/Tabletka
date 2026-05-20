@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -20,12 +19,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.material3.Scaffold
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import ru.pukhanov.tabletka.ui.viewmodel.TodayViewModel
 import ru.pukhanov.tabletka.ui.viewmodel.MedicationListViewModel
 import ru.pukhanov.tabletka.ui.viewmodel.AddEditMedicationViewModel
@@ -144,7 +141,8 @@ fun MedicationApp(
                             launchSingleTop = true
                             restoreState = true
                         }
-                        navController.navigate("add_edit?medicationId=-1")
+                        navController.currentBackStackEntry?.savedStateHandle
+                            ?.set("openNew", true)
                     },
                     onSettingsClick = { navController.navigate("settings") }
                 )
@@ -171,58 +169,45 @@ fun MedicationApp(
                         null
                     }
                 }
-            ) {
-                val viewModel: MedicationListViewModel = hiltViewModel()
-                val medications by viewModel.medications.collectAsState()
-
-                MedicationListScreen(
-                    medications = medications,
-                    onAddClick = { navController.navigate("add_edit?medicationId=-1") },
-                    onMedicationClick = { id -> navController.navigate("add_edit?medicationId=$id") },
-                    onDeleteMedication = { medication -> viewModel.deleteMedication(medication) }
-                )
-            }
-            composable(
-                route = "add_edit?medicationId={medicationId}",
-                arguments = listOf(
-                    navArgument("medicationId") {
-                        type = NavType.LongType
-                        defaultValue = -1L
-                    }
-                )
             ) { backStackEntry ->
-                val medicationIdArg = backStackEntry.arguments?.getLong("medicationId")
-                val medicationId = if (medicationIdArg == -1L || medicationIdArg == null) null else medicationIdArg
+                val listViewModel: MedicationListViewModel = hiltViewModel()
+                val medications by listViewModel.medications.collectAsState()
 
-                val viewModel: AddEditMedicationViewModel = hiltViewModel()
-                val addEditState by viewModel.addEditUiState.collectAsState()
+                val addEditViewModel: AddEditMedicationViewModel = hiltViewModel()
+                val addEditState by addEditViewModel.addEditUiState.collectAsState()
 
-                LaunchedEffect(medicationId) {
-                    viewModel.loadMedication(medicationId)
-                }
+                val openNew by backStackEntry.savedStateHandle
+                    .getStateFlow("openNew", false)
+                    .collectAsState()
 
-                AddEditMedicationScreen(
-                    state = addEditState,
-                    onTitleChange = { viewModel.onTitleChanged(it) },
-                    onBrandNameChange = { viewModel.onBrandNameChanged(it) },
-                    onDosageChange = { viewModel.onDosageChanged(it) },
-                    onAddSchedule = { viewModel.onAddSchedule() },
-                    onDeleteSchedule = { viewModel.onDeleteSchedule(it) },
+                MedicationsScreen(
+                    medications = medications,
+                    onDeleteMedication = { medication ->
+                        listViewModel.deleteMedication(medication)
+                    },
+                    addEditState = addEditState,
+                    onLoadMedication = { id -> addEditViewModel.loadMedication(id) },
+                    onTitleChange = { addEditViewModel.onTitleChanged(it) },
+                    onBrandNameChange = { addEditViewModel.onBrandNameChanged(it) },
+                    onDosageChange = { addEditViewModel.onDosageChanged(it) },
+                    onAddSchedule = { addEditViewModel.onAddSchedule() },
+                    onDeleteSchedule = { addEditViewModel.onDeleteSchedule(it) },
                     onScheduleTimeChange = { index, hour, minute ->
-                        viewModel.onScheduleTimeChanged(index, hour, minute)
+                        addEditViewModel.onScheduleTimeChanged(index, hour, minute)
                     },
                     onScheduleDayToggle = { index, day ->
-                        viewModel.onScheduleDayToggled(index, day)
+                        addEditViewModel.onScheduleDayToggled(index, day)
                     },
                     onScheduleDosesChange = { index, doses ->
-                        viewModel.onScheduleDosesChanged(index, doses)
+                        addEditViewModel.onScheduleDosesChanged(index, doses)
                     },
-                    onSaveClick = {
-                        viewModel.saveMedication(
-                            onSuccess = { navController.popBackStack() }
-                        )
+                    onSaveMedication = { onSuccess ->
+                        addEditViewModel.saveMedication(onSuccess = onSuccess)
                     },
-                    onBackClick = { navController.popBackStack() }
+                    openNew = openNew,
+                    onOpenNewConsumed = {
+                        backStackEntry.savedStateHandle["openNew"] = false
+                    }
                 )
             }
             composable(route = "settings") {

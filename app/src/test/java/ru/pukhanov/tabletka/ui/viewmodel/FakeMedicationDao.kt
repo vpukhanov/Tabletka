@@ -79,10 +79,14 @@ class FakeMedicationDao : MedicationDao {
         flow.value = flow.value.filterNot { it.hour == hour && it.minute == minute }
     }
 
-    override suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>) {
+    override suspend fun saveMedicationWithSchedules(
+        medication: Medication,
+        schedules: List<MedicationSchedule>
+    ): Long {
         val id = insert(medication)
         val targetId = if (medication.id == 0L) id else medication.id
         schedulesMap[targetId] = schedules.map { it.copy(medicationId = targetId) }
         updateAllWithSchedules()
+        return targetId
     }
 }

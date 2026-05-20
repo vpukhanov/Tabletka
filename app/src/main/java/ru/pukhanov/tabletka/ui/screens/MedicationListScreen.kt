@@ -34,7 +34,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
@@ -62,7 +61,8 @@ fun MedicationListScreen(
     onAddClick: () -> Unit,
     onMedicationClick: (Long) -> Unit,
     onDeleteMedication: (Medication) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    selectedId: Long? = null
 ) {
     val view = LocalView.current
     var medicationToDelete by remember { mutableStateOf<Medication?>(null) }
@@ -80,10 +80,7 @@ fun MedicationListScreen(
                         text = "My Medications",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                }
             )
         },
         floatingActionButton = {
@@ -166,7 +163,8 @@ fun MedicationListScreen(
                         ) {
                             MedicationItemCard(
                                 medication = medication,
-                                onClick = { onMedicationClick(medication.id) }
+                                onClick = { onMedicationClick(medication.id) },
+                                isSelected = medication.id == selectedId
                             )
                         }
                     }
@@ -204,15 +202,21 @@ fun MedicationListScreen(
 fun MedicationItemCard(
     medication: Medication,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isSelected: Boolean = false
 ) {
+    val containerColor = if (isSelected) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = containerColor
         ),
         elevation = CardDefaults.elevatedCardElevation(
             defaultElevation = 2.dp

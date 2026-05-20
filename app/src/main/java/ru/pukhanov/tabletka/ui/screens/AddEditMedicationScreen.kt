@@ -39,7 +39,6 @@ import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -94,14 +93,15 @@ fun AddEditMedicationScreen(
     onScheduleDosesChange: (Int, Double) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showBackButton: Boolean = true
 ) {
     val context = LocalContext.current
     val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
     var showExactAlarmDialog by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = state.hasChanges && !state.isSaving) {
+    BackHandler(enabled = showBackButton && state.hasChanges && !state.isSaving) {
         showDiscardDialog = true
     }
 
@@ -163,19 +163,21 @@ fun AddEditMedicationScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (state.hasChanges) {
-                                showDiscardDialog = true
-                            } else {
-                                onBackClick()
+                    if (showBackButton) {
+                        IconButton(
+                            onClick = {
+                                if (state.hasChanges) {
+                                    showDiscardDialog = true
+                                } else {
+                                    onBackClick()
+                                }
                             }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Go back"
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Go back"
-                        )
                     }
                 },
                 actions = {
@@ -190,10 +192,7 @@ fun AddEditMedicationScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
-                )
+                }
             )
         }
     ) { innerPadding ->

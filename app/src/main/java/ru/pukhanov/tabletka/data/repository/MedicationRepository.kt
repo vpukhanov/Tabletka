@@ -46,7 +46,7 @@ class MedicationRepository(
         medicationDao.getMedicationWithSchedules(id)
     }
 
-    suspend fun save(medication: Medication, schedules: List<MedicationSchedule>) = withContext(ioDispatcher) {
+    suspend fun save(medication: Medication, schedules: List<MedicationSchedule>): Long = withContext(ioDispatcher) {
         medicationDao.saveMedicationWithSchedules(medication, schedules)
     }
 }

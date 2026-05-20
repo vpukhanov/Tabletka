@@ -106,7 +106,7 @@ class AddEditMedicationViewModel @Inject constructor(private val repository: Med
         }
     }
 
-    fun saveMedication(onSuccess: () -> Unit) {
+    fun saveMedication(onSuccess: (Long) -> Unit) {
         val currentState = _addEditUiState.value
         if (currentState.title.isBlank()) {
             updateState { it.copy(titleError = "Title cannot be empty") }
@@ -133,9 +133,16 @@ class AddEditMedicationViewModel @Inject constructor(private val repository: Med
                     doses = scheduleState.doses
                 )
             }
-            repository.save(medication, schedules)
-            updateState { it.copy(isSaving = false) }
-            onSuccess()
+            val savedId = repository.save(medication, schedules)
+            val savedState = currentState.copy(
+                medicationId = savedId,
+                isSaving = false,
+                isEditMode = true,
+                hasChanges = false
+            )
+            originalState = savedState
+            _addEditUiState.value = savedState
+            onSuccess(savedId)
         }
     }
 

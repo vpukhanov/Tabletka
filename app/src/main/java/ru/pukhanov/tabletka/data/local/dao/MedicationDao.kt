@@ -50,12 +50,13 @@ interface MedicationDao {
     fun getTakesForDate(date: String): Flow<List<MedicationTake>>
 
     @Transaction
-    suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>) {
+    suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>): Long {
         val medicationId = insert(medication)
         val targetMedicationId = if (medication.id == 0L) medicationId else medication.id
         deleteSchedulesForMedication(targetMedicationId)
         val schedulesToInsert = schedules.map { it.copy(medicationId = targetMedicationId) }
         insertSchedules(schedulesToInsert)
+        return targetMedicationId
     }
 }
 
