@@ -61,6 +61,19 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import ru.pukhanov.tabletka.ui.viewmodel.AddEditUiState
 import ru.pukhanov.tabletka.ui.viewmodel.ScheduleUiState
 import java.time.DayOfWeek
@@ -82,6 +95,57 @@ fun AddEditMedicationScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val alarmManager = remember { context.getSystemService(Context.ALARM_SERVICE) as AlarmManager }
+    var showExactAlarmDialog by remember { mutableStateOf(false) }
+
+    val checkExactAlarmAndSave = {
+        val canScheduleExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            alarmManager.canScheduleExactAlarms()
+        } else {
+            true
+        }
+
+        if (!canScheduleExact && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            showExactAlarmDialog = true
+        } else {
+            onSaveClick()
+        }
+    }
+
+    val postNotificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                checkExactAlarmAndSave()
+            } else {
+                onSaveClick()
+            }
+        }
+    )
+
+    val handleSave = {
+        val hasSchedule = state.schedules.isNotEmpty()
+        if (hasSchedule) {
+            val hasNotificationsPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+
+            if (!hasNotificationsPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                postNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                checkExactAlarmAndSave()
+            }
+        } else {
+            onSaveClick()
+        }
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -102,7 +166,7 @@ fun AddEditMedicationScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = onSaveClick,
+                        onClick = handleSave,
                         enabled = !state.isSaving
                     ) {
                         Icon(
@@ -283,6 +347,59 @@ fun AddEditMedicationScreen(
                     TimePicker(state = timePickerState)
                 }
             }
+        }
+
+        if (showExactAlarmDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showExactAlarmDialog = false
+                    onSaveClick()
+                },
+                title = {
+                    Text(
+                        text = "Exact Reminders Needed",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "To deliver medication reminders precisely on time, Tabletka needs the 'Alarms & reminders' permission. Please enable this option in the system settings."
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showExactAlarmDialog = false
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                data = Uri.parse("package:${context.packageName}")
+                            }
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                try {
+                                    val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
+                                    context.startActivity(fallbackIntent)
+                                } catch (ex: Exception) {
+                                    // ignore or log
+                                }
+                            }
+                            onSaveClick()
+                        }
+                    ) {
+                        Text("Go to Settings")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showExactAlarmDialog = false
+                            onSaveClick()
+                        }
+                    ) {
+                        Text("Save Anyway")
+                    }
+                }
+            )
         }
     }
 }

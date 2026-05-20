@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Tabletka</string>
+    <string name="medication_notifications_channel_name">Medication Reminders</string>
+    <string name="medication_notifications_channel_desc">Notifications when it is time to take your medication</string>
 </resources>
