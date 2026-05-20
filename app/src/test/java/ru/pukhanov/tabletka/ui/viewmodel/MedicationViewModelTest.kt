@@ -17,8 +17,11 @@ import org.junit.Before
 import org.junit.Test
 import ru.pukhanov.tabletka.data.local.dao.MedicationDao
 import ru.pukhanov.tabletka.data.model.Medication
+import ru.pukhanov.tabletka.data.model.MedicationSchedule
+import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import ru.pukhanov.tabletka.data.repository.MedicationRepository
 import ru.pukhanov.tabletka.ui.screens.Screen
+import java.time.DayOfWeek
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MedicationViewModelTest {
@@ -131,10 +134,99 @@ class MedicationViewModelTest {
         val list = fakeDao.getAll().first()
         assertEquals(0, list.size)
     }
+
+    @Test
+    fun onAddSchedule_appendsDefaultSchedule() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onAddSchedule()
+
+        val schedules = viewModel.addEditUiState.value.schedules
+        assertEquals(1, schedules.size)
+        assertEquals(8, schedules[0].hour)
+        assertEquals(0, schedules[0].minute)
+        assertEquals(DayOfWeek.values().toSet(), schedules[0].daysOfWeek)
+    }
+
+    @Test
+    fun onScheduleTimeChanged_updatesTimeCorrectly() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onAddSchedule()
+        viewModel.onScheduleTimeChanged(index = 0, hour = 14, minute = 45)
+
+        val schedules = viewModel.addEditUiState.value.schedules
+        assertEquals(14, schedules[0].hour)
+        assertEquals(45, schedules[0].minute)
+    }
+
+    @Test
+    fun onScheduleDayToggled_togglesDayCorrectly() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onAddSchedule()
+
+        // Toggle Monday off
+        viewModel.onScheduleDayToggled(index = 0, day = DayOfWeek.MONDAY)
+        assertEquals(DayOfWeek.values().toSet() - DayOfWeek.MONDAY, viewModel.addEditUiState.value.schedules[0].daysOfWeek)
+
+        // Toggle Monday back on
+        viewModel.onScheduleDayToggled(index = 0, day = DayOfWeek.MONDAY)
+        assertEquals(DayOfWeek.values().toSet(), viewModel.addEditUiState.value.schedules[0].daysOfWeek)
+    }
+
+    @Test
+    fun onDeleteSchedule_removesScheduleCorrectly() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onAddSchedule() // index 0
+        viewModel.onAddSchedule() // index 1
+
+        viewModel.onScheduleTimeChanged(index = 1, hour = 18, minute = 0)
+        viewModel.onDeleteSchedule(index = 0)
+
+        val schedules = viewModel.addEditUiState.value.schedules
+        assertEquals(1, schedules.size)
+        assertEquals(18, schedules[0].hour)
+    }
+
+    @Test
+    fun navigateTo_withMedicationId_loadsSchedules() = runTest {
+        val medication = Medication(id = 42L, title = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(id = 1L, medicationId = 42L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY))
+        )
+        fakeDao.saveMedicationWithSchedules(medication, schedules)
+
+        viewModel.navigateTo(Screen.AddEdit(42L))
+        val state = viewModel.addEditUiState.value
+        assertEquals("Aspirin", state.title)
+        assertEquals(1, state.schedules.size)
+        assertEquals(8, state.schedules[0].hour)
+        assertEquals(setOf(DayOfWeek.MONDAY), state.schedules[0].daysOfWeek)
+    }
+
+    @Test
+    fun saveNewMedication_savesSchedules() = runTest {
+        viewModel.navigateTo(Screen.AddEdit(null))
+        viewModel.onTitleChanged("Ibuprofen")
+        viewModel.onAddSchedule()
+        viewModel.onScheduleTimeChanged(index = 0, hour = 12, minute = 30)
+        viewModel.onScheduleDayToggled(index = 0, day = DayOfWeek.WEDNESDAY)
+        viewModel.saveMedication()
+
+        val all = fakeDao.getAll().first()
+        assertEquals(1, all.size)
+        val medId = all[0].id
+
+        val retrieved = fakeDao.getMedicationWithSchedules(medId)
+        assertNotNull(retrieved)
+        assertEquals(1, retrieved?.schedules?.size)
+        assertEquals(12, retrieved?.schedules?.first()?.hour)
+        assertEquals(30, retrieved?.schedules?.first()?.minute)
+        assertEquals(DayOfWeek.values().toSet() - DayOfWeek.WEDNESDAY, retrieved?.schedules?.first()?.daysOfWeek)
+    }
 }
 
 class FakeMedicationDao : MedicationDao {
     private val medicationsMap = mutableMapOf<Long, Medication>()
+    private val schedulesMap = mutableMapOf<Long, List<MedicationSchedule>>()
     private val _flow = MutableStateFlow<List<Medication>>(emptyList())
     private var nextId = 1L
 
@@ -156,6 +248,27 @@ class FakeMedicationDao : MedicationDao {
 
     override suspend fun delete(medication: Medication) {
         medicationsMap.remove(medication.id)
+        schedulesMap.remove(medication.id)
         _flow.value = medicationsMap.values.toList().reversed()
+    }
+
+    override suspend fun insertSchedules(schedules: List<MedicationSchedule>) {
+        // Not directly called by repo under fake mapping, but required to implement MedicationDao
+    }
+
+    override suspend fun deleteSchedulesForMedication(medicationId: Long) {
+        schedulesMap.remove(medicationId)
+    }
+
+    override suspend fun getMedicationWithSchedules(id: Long): MedicationWithSchedules? {
+        val medication = medicationsMap[id] ?: return null
+        val schedules = schedulesMap[id] ?: emptyList()
+        return MedicationWithSchedules(medication, schedules)
+    }
+
+    override suspend fun saveMedicationWithSchedules(medication: Medication, schedules: List<MedicationSchedule>) {
+        val id = insert(medication)
+        val targetId = if (medication.id == 0L) id else medication.id
+        schedulesMap[targetId] = schedules.map { it.copy(medicationId = targetId) }
     }
 }

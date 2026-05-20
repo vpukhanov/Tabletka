@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import ru.pukhanov.tabletka.data.local.dao.MedicationDao
 import ru.pukhanov.tabletka.data.model.Medication
+import ru.pukhanov.tabletka.data.model.MedicationSchedule
+import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 
 class MedicationRepository(
     private val medicationDao: MedicationDao,
@@ -24,4 +26,13 @@ class MedicationRepository(
     suspend fun delete(medication: Medication) = withContext(ioDispatcher) {
         medicationDao.delete(medication)
     }
+
+    suspend fun getWithSchedules(id: Long): MedicationWithSchedules? = withContext(ioDispatcher) {
+        medicationDao.getMedicationWithSchedules(id)
+    }
+
+    suspend fun save(medication: Medication, schedules: List<MedicationSchedule>) = withContext(ioDispatcher) {
+        medicationDao.saveMedicationWithSchedules(medication, schedules)
+    }
 }
+

@@ -1,42 +1,70 @@
 package ru.pukhanov.tabletka.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import ru.pukhanov.tabletka.ui.viewmodel.AddEditUiState
+import ru.pukhanov.tabletka.ui.viewmodel.ScheduleUiState
+import java.time.DayOfWeek
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +73,10 @@ fun AddEditMedicationScreen(
     onTitleChange: (String) -> Unit,
     onBrandNameChange: (String) -> Unit,
     onDosageChange: (String) -> Unit,
+    onAddSchedule: () -> Unit,
+    onDeleteSchedule: (Int) -> Unit,
+    onScheduleTimeChange: (Int, Int, Int) -> Unit,
+    onScheduleDayToggle: (Int, DayOfWeek) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -84,11 +116,14 @@ fun AddEditMedicationScreen(
             )
         }
     ) { innerPadding ->
+        var timePickerIndexToEdit by remember { mutableStateOf<Int?>(null) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
@@ -131,6 +166,246 @@ fun AddEditMedicationScreen(
                 singleLine = true
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Schedules",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            if (state.schedules.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Text(
+                        text = "No schedules defined. Add a schedule to set reminders for this medication.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            } else {
+                state.schedules.forEachIndexed { index, schedule ->
+                    key(schedule.id) {
+                        @Suppress("DEPRECATION")
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { dismissValue ->
+                                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                                    onDeleteSchedule(index)
+                                    true
+                                } else {
+                                    false
+                                }
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            backgroundContent = {
+                                val color = when (dismissState.dismissDirection) {
+                                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                                    else -> Color.Transparent
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(color, shape = MaterialTheme.shapes.medium)
+                                        .padding(horizontal = 20.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete schedule",
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                    }
+                                }
+                            },
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = true,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            ScheduleCard(
+                                index = index,
+                                schedule = schedule,
+                                onTimeClick = { timePickerIndexToEdit = index },
+                                onDayToggled = onScheduleDayToggle
+                            )
+                        }
+                    }
+                }
+            }
+
+            OutlinedButton(
+                onClick = onAddSchedule,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add Schedule")
+            }
+        }
+
+        if (timePickerIndexToEdit != null) {
+            val index = timePickerIndexToEdit!!
+            val schedule = state.schedules.getOrNull(index)
+            if (schedule != null) {
+                val timePickerState = rememberTimePickerState(
+                    initialHour = schedule.hour,
+                    initialMinute = schedule.minute,
+                    is24Hour = true
+                )
+                TimePickerDialog(
+                    onDismissRequest = { timePickerIndexToEdit = null },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                onScheduleTimeChange(index, timePickerState.hour, timePickerState.minute)
+                                timePickerIndexToEdit = null
+                            }
+                        ) {
+                            Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { timePickerIndexToEdit = null }) {
+                            Text("Cancel")
+                        }
+                    }
+                ) {
+                    TimePicker(state = timePickerState)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleCard(
+    index: Int,
+    schedule: ScheduleUiState,
+    onTimeClick: () -> Unit,
+    onDayToggled: (Int, DayOfWeek) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onTimeClick,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = String.format(Locale.getDefault(), "%02d:%02d", schedule.hour, schedule.minute),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                DayOfWeek.values().forEach { day ->
+                    val isSelected = schedule.daysOfWeek.contains(day)
+                    val containerColor = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    }
+                    val contentColor = if (isSelected) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    Surface(
+                        onClick = { onDayToggled(index, day) },
+                        shape = CircleShape,
+                        color = containerColor,
+                        contentColor = contentColor,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Text(
+                                text = day.getAbbreviation(),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun DayOfWeek.getAbbreviation(): String = when (this) {
+    DayOfWeek.MONDAY -> "Mo"
+    DayOfWeek.TUESDAY -> "Tu"
+    DayOfWeek.WEDNESDAY -> "We"
+    DayOfWeek.THURSDAY -> "Th"
+    DayOfWeek.FRIDAY -> "Fr"
+    DayOfWeek.SATURDAY -> "Sa"
+    DayOfWeek.SUNDAY -> "Su"
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    dismissButton: @Composable () -> Unit = {},
+    content: @Composable () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.extraLarge,
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            modifier = Modifier
+                .width(IntrinsicSize.Min)
+                .height(IntrinsicSize.Min)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                content()
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    dismissButton()
+                    Spacer(modifier = Modifier.width(8.dp))
+                    confirmButton()
+                }
+            }
         }
     }
 }

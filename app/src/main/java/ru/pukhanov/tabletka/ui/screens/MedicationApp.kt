@@ -43,6 +43,14 @@ fun MedicationApp(
                     onTitleChange = { viewModel.onTitleChanged(it) },
                     onBrandNameChange = { viewModel.onBrandNameChanged(it) },
                     onDosageChange = { viewModel.onDosageChanged(it) },
+                    onAddSchedule = { viewModel.onAddSchedule() },
+                    onDeleteSchedule = { viewModel.onDeleteSchedule(it) },
+                    onScheduleTimeChange = { index, hour, minute ->
+                        viewModel.onScheduleTimeChanged(index, hour, minute)
+                    },
+                    onScheduleDayToggle = { index, day ->
+                        viewModel.onScheduleDayToggled(index, day)
+                    },
                     onSaveClick = { viewModel.saveMedication() },
                     onBackClick = { viewModel.navigateTo(Screen.List) }
                 )

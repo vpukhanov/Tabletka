@@ -15,7 +15,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import ru.pukhanov.tabletka.data.local.database.AppDatabase
 import ru.pukhanov.tabletka.data.model.Medication
+import ru.pukhanov.tabletka.data.model.MedicationSchedule
+import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import java.io.IOException
+import java.time.DayOfWeek
 
 @RunWith(AndroidJUnit4::class)
 class MedicationDaoTest {
@@ -88,5 +91,75 @@ class MedicationDaoTest {
         medicationDao.delete(retrievedBefore!!)
         val retrievedAfter = medicationDao.getById(id)
         assertNull(retrievedAfter)
+    }
+
+    @Test
+    fun saveAndGetMedicationWithSchedules() = runBlocking {
+        val medication = Medication(title = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY)),
+            MedicationSchedule(hour = 9, minute = 30, daysOfWeek = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+        )
+
+        medicationDao.saveMedicationWithSchedules(medication, schedules)
+
+        val allMedications = medicationDao.getAll().first()
+        assertEquals(1, allMedications.size)
+        val medId = allMedications[0].id
+
+        val retrieved = medicationDao.getMedicationWithSchedules(medId)
+        assertNotNull(retrieved)
+        assertEquals("Aspirin", retrieved?.medication?.title)
+        assertEquals(2, retrieved?.schedules?.size)
+
+        val sched1 = retrieved?.schedules?.find { it.hour == 8 }
+        assertNotNull(sched1)
+        assertEquals(0, sched1?.minute)
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY), sched1?.daysOfWeek)
+
+        val sched2 = retrieved?.schedules?.find { it.hour == 9 }
+        assertNotNull(sched2)
+        assertEquals(30, sched2?.minute)
+        assertEquals(setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY), sched2?.daysOfWeek)
+    }
+
+    @Test
+    fun saveMedicationWithSchedules_updatesExistingSchedules() = runBlocking {
+        val medication = Medication(title = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY))
+        )
+        medicationDao.saveMedicationWithSchedules(medication, schedules)
+
+        val medId = medicationDao.getAll().first()[0].id
+
+        val updatedMedication = Medication(id = medId, title = "Aspirin Forte")
+        val newSchedules = listOf(
+            MedicationSchedule(hour = 10, minute = 15, daysOfWeek = setOf(DayOfWeek.FRIDAY))
+        )
+        medicationDao.saveMedicationWithSchedules(updatedMedication, newSchedules)
+
+        val retrieved = medicationDao.getMedicationWithSchedules(medId)
+        assertNotNull(retrieved)
+        assertEquals("Aspirin Forte", retrieved?.medication?.title)
+        assertEquals(1, retrieved?.schedules?.size)
+        assertEquals(10, retrieved?.schedules?.first()?.hour)
+        assertEquals(15, retrieved?.schedules?.first()?.minute)
+        assertEquals(setOf(DayOfWeek.FRIDAY), retrieved?.schedules?.first()?.daysOfWeek)
+    }
+
+    @Test
+    fun deleteMedication_cascadeDeletesSchedules() = runBlocking {
+        val medication = Medication(title = "To Delete")
+        val schedules = listOf(
+            MedicationSchedule(hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.MONDAY))
+        )
+        medicationDao.saveMedicationWithSchedules(medication, schedules)
+
+        val med = medicationDao.getAll().first()[0]
+        medicationDao.delete(med)
+
+        val retrieved = medicationDao.getMedicationWithSchedules(med.id)
+        assertNull(retrieved)
     }
 }

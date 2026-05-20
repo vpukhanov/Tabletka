@@ -12,7 +12,7 @@ class TabletkaApplication : Application() {
             AppDatabase::class.java,
             "tabletka_database"
         )
-        .addMigrations(AppDatabase.MIGRATION_1_2)
+        .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
         .build()
     }
 
