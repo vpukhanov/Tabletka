@@ -261,7 +261,7 @@ fun TodayScheduleCard(
 
                     Text(
                         text = "${med.title}$dosageText × $dosesText",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                     )
                 }
