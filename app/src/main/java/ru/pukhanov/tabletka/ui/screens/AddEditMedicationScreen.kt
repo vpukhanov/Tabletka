@@ -49,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -93,6 +95,7 @@ fun AddEditMedicationScreen(
     onScheduleDosesChange: (Int, Double) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
+    titleFocusRequester: FocusRequester,
     modifier: Modifier = Modifier,
     showBackButton: Boolean = true
 ) {
@@ -212,7 +215,9 @@ fun AddEditMedicationScreen(
                 onValueChange = onTitleChange,
                 label = { Text("Title *") },
                 placeholder = { Text("e.g. Aspirin") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(titleFocusRequester),
                 isError = state.titleError != null,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,

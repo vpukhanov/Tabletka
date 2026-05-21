@@ -1,6 +1,7 @@
 package ru.pukhanov.tabletka.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -57,6 +61,11 @@ fun MedicationsScreen(
 ) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Long>()
     val scope = rememberCoroutineScope()
+
+    val titleFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    // Destination key whose auto-focus policy we have already applied.
+    var autoFocusHandledForKey by remember { mutableStateOf<Long?>(null) }
 
     val isListExpanded = navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded
     val isDetailExpanded = navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
@@ -157,7 +166,19 @@ fun MedicationsScreen(
                         },
                         onBackClick = {
                             scope.launch { navigator.navigateBack() }
-                        }
+                        },
+                        titleFocusRequester = titleFocusRequester,
+                        modifier = Modifier
+                            .focusProperties {
+                                onEnter = {
+                                    // Suppress the scaffold's automatic focus-enter until
+                                    // the LaunchedEffect below claims the current key.
+                                    if (autoFocusHandledForKey != currentKey) {
+                                        cancelFocusChange()
+                                    }
+                                }
+                            }
+                            .focusGroup()
                     )
                 } else {
                     EmptyDetailPane()
@@ -166,6 +187,18 @@ fun MedicationsScreen(
         },
         modifier = modifier
     )
+
+    // Drive detail-pane focus ourselves: auto-focus the title (and open the keyboard) only
+    // when adding a new medication. Placed after the scaffold so it runs after the scaffold's
+    // own auto-focus effect, which the focusProperties.onEnter above has already cancelled.
+    LaunchedEffect(currentKey) {
+        autoFocusHandledForKey = currentKey
+        if (currentKey == NEW_MEDICATION_KEY) {
+            titleFocusRequester.requestFocus()
+        } else {
+            focusManager.clearFocus()
+        }
+    }
 
     if (showDiscardConfirmation) {
         AlertDialog(
