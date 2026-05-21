@@ -257,7 +257,7 @@ private fun EmptyDetailPane(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Choose a medication from the list\nto view or edit.",
+            text = "Choose a medication from the list to view or edit.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

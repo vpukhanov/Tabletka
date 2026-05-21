@@ -122,4 +122,21 @@ class TodayViewModelTest {
         viewModel.toggleTakeStatus(8, 0, isCurrentlyTaken = true)
         assertEquals(false, viewModel.todayScheduleGroups.first()[0].isTaken)
     }
+
+    @Test
+    fun todayScheduleGroups_includesBrandName() = runTest {
+        viewModel.setCurrentDate(LocalDate.of(2026, 5, 20)) // Wednesday
+        
+        val med = Medication(id = 1L, title = "Acetylsalicylic Acid", brandName = "Aspirin")
+        val schedules = listOf(
+            MedicationSchedule(id = 1L, medicationId = 1L, hour = 8, minute = 0, daysOfWeek = setOf(DayOfWeek.WEDNESDAY), doses = 1.5)
+        )
+        fakeDao.saveMedicationWithSchedules(med, schedules)
+
+        val groups = viewModel.todayScheduleGroups.first()
+        assertEquals(1, groups.size)
+        assertEquals("Acetylsalicylic Acid", groups[0].medications[0].title)
+        assertEquals("Aspirin", groups[0].medications[0].brandName)
+        assertEquals(1.5, groups[0].medications[0].doses, 0.0)
+    }
 }

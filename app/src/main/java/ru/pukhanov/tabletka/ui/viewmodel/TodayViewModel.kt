@@ -21,7 +21,8 @@ import javax.inject.Inject
 data class TodayMedicationItem(
     val title: String,
     val dosage: String?,
-    val doses: Double
+    val doses: Double,
+    val brandName: String? = null
 )
 
 data class TodayScheduleGroup(
@@ -72,7 +73,8 @@ class TodayViewModel @Inject constructor(private val repository: MedicationRepos
                         TodayMedicationItem(
                             title = medication.title,
                             dosage = medication.dosage,
-                            doses = schedule.doses
+                            doses = schedule.doses,
+                            brandName = medication.brandName
                         )
                     },
                     isTaken = isTaken

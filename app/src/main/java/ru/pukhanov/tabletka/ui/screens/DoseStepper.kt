@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
+import ru.pukhanov.tabletka.util.formatDoses
 
 @Composable
 fun DoseStepper(
@@ -56,14 +57,8 @@ fun DoseStepper(
             )
         }
 
-        val dosesText = if (doses % 1.0 == 0.0) {
-            doses.toInt().toString()
-        } else {
-            doses.toString()
-        }
-
         Text(
-            text = "$dosesText ${if (doses == 1.0) "dose" else "doses"}",
+            text = formatDoses(doses),
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,

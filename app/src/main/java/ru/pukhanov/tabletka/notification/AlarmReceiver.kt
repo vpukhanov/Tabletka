@@ -20,6 +20,7 @@ import ru.pukhanov.tabletka.TabletkaApplication
 import ru.pukhanov.tabletka.data.model.MedicationWithSchedules
 import java.time.DayOfWeek
 import java.time.LocalDate
+import ru.pukhanov.tabletka.util.formatMedicationDescription
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -125,10 +126,21 @@ class AlarmReceiver : BroadcastReceiver() {
             "Medications Reminder"
         }
 
+        val dayOfWeek = DayOfWeek.of(dayOfWeekValue)
         val medNames = scheduledMeds.joinToString(", ") { medWithSchedule ->
             val med = medWithSchedule.medication
-            val dosageText = if (!med.dosage.isNullOrBlank()) " (${med.dosage})" else ""
-            "${med.title}$dosageText"
+            val schedule = medWithSchedule.schedules.firstOrNull { s ->
+                s.hour == hour &&
+                s.minute == minute &&
+                s.daysOfWeek.contains(dayOfWeek)
+            }
+            val doses = schedule?.doses ?: 1.0
+            formatMedicationDescription(
+                title = med.title,
+                brandName = med.brandName,
+                dosage = med.dosage,
+                doses = doses
+            )
         }
         val text = "It's time to take: $medNames"
 

@@ -63,6 +63,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
+import ru.pukhanov.tabletka.util.formatMedicationDescription
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -294,14 +295,13 @@ fun TodayScheduleCard(
                         ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val dosageText = if (!med.dosage.isNullOrBlank()) " • ${med.dosage}" else ""
-                    val dosesText = if (med.doses == 1.0) "1 dose" else {
-                        val dosesInt = med.doses.toInt()
-                        if (med.doses == dosesInt.toDouble()) "$dosesInt doses" else "${med.doses} doses"
-                    }
-
                     Text(
-                        text = "${med.title}$dosageText × $dosesText",
+                        text = formatMedicationDescription(
+                            title = med.title,
+                            brandName = med.brandName,
+                            dosage = med.dosage,
+                            doses = med.doses
+                        ),
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
                     )
