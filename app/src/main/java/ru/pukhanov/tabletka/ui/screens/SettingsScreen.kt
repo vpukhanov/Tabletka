@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -128,103 +129,110 @@ fun SettingsScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Text(
-                text = "Permissions",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                )
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 600.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column {
-                    // Notification Permission Item
-                    PermissionRow(
-                        title = "Notifications",
-                        description = "Receive medication reminders and alerts",
-                        icon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        },
-                        isGranted = hasNotificationPermission,
-                        onAllowClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                requestNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                        }
-                    )
+                Text(
+                    text = "Permissions",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
 
-                    HorizontalDivider(
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                     )
-
-                    // Alarms & Reminders Permission Item
-                    PermissionRow(
-                        title = "Alarms & reminders",
-                        description = "Deliver reminders precisely at the scheduled time",
-                        icon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Alarm,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        },
-                        isGranted = hasAlarmPermission,
-                        onAllowClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                    data = "package:${context.packageName}".toUri()
+                ) {
+                    Column {
+                        // Notification Permission Item
+                        PermissionRow(
+                            title = "Notifications",
+                            description = "Receive medication reminders and alerts",
+                            icon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Notifications,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(22.dp)
+                                    )
                                 }
-                                try {
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
+                            },
+                            isGranted = hasNotificationPermission,
+                            onAllowClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
+                        )
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+
+                        // Alarms & Reminders Permission Item
+                        PermissionRow(
+                            title = "Alarms & reminders",
+                            description = "Deliver reminders precisely at the scheduled time",
+                            icon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Alarm,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            },
+                            isGranted = hasAlarmPermission,
+                            onAllowClick = {
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                        data = "package:${context.packageName}".toUri()
+                                    }
                                     try {
-                                        val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
-                                        context.startActivity(fallbackIntent)
-                                    } catch (ex: Exception) {
-                                        // Ignore
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        try {
+                                            val fallbackIntent = Intent(Settings.ACTION_SETTINGS)
+                                            context.startActivity(fallbackIntent)
+                                        } catch (ex: Exception) {
+                                            // Ignore
+                                        }
                                     }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
