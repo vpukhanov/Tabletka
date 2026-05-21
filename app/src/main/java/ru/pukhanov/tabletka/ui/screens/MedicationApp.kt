@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -16,7 +14,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -49,26 +55,46 @@ fun MedicationApp(
         }
     }
 
-    val showBottomBar = currentRoute in listOf("today", "medications")
+    // Settings is a modal sub-screen reached via a back button, so it hides the
+    // navigation surface; every other destination gets the adaptive bar/rail.
+    val layoutType = if (currentRoute == "settings") {
+        NavigationSuiteType.None
+    } else {
+        NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
+    }
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                TabletkaBottomBar(
-                    currentRoute = currentRoute,
-                    onNavigate = onNavigate
-                )
-            }
+    NavigationSuiteScaffold(
+        navigationSuiteItems = {
+            item(
+                selected = currentRoute == "today",
+                onClick = { onNavigate("today") },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Today,
+                        contentDescription = "Today's Schedule"
+                    )
+                },
+                label = { Text("Today") }
+            )
+            item(
+                selected = currentRoute == "medications",
+                onClick = { onNavigate("medications") },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Medication,
+                        contentDescription = "All Medications"
+                    )
+                },
+                label = { Text("Medications") }
+            )
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        layoutType = layoutType,
         modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
+    ) {
         NavHost(
             navController = navController,
             startDestination = "today",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             composable(
                 route = "today",
