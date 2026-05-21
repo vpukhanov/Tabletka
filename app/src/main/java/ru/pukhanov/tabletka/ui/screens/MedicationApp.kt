@@ -32,7 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import ru.pukhanov.tabletka.ui.viewmodel.TodayViewModel
 import ru.pukhanov.tabletka.ui.viewmodel.MedicationListViewModel
 import ru.pukhanov.tabletka.ui.viewmodel.AddEditMedicationViewModel
-import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import java.time.LocalDate
 
@@ -94,31 +95,11 @@ fun MedicationApp(
         NavHost(
             navController = navController,
             startDestination = "today",
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = { fadeIn(animationSpec = tween(220)) },
+            exitTransition = { fadeOut(animationSpec = tween(220)) }
         ) {
-            composable(
-                route = "today",
-                enterTransition = {
-                    if (initialState.destination.route == "medications") {
-                        slideIntoContainer(
-                            AnimatedContentTransitionScope.SlideDirection.Right,
-                            animationSpec = tween(300)
-                        )
-                    } else {
-                        null
-                    }
-                },
-                exitTransition = {
-                    if (targetState.destination.route == "medications") {
-                        slideOutOfContainer(
-                            AnimatedContentTransitionScope.SlideDirection.Left,
-                            animationSpec = tween(300)
-                        )
-                    } else {
-                        null
-                    }
-                }
-            ) {
+            composable(route = "today") {
                 val viewModel: TodayViewModel = hiltViewModel()
                 val todayGroups by viewModel.todayScheduleGroups.collectAsState()
                 val medications by viewModel.medications.collectAsState()
@@ -173,29 +154,7 @@ fun MedicationApp(
                     onSettingsClick = { navController.navigate("settings") }
                 )
             }
-            composable(
-                route = "medications",
-                enterTransition = {
-                    if (initialState.destination.route == "today") {
-                        slideIntoContainer(
-                            AnimatedContentTransitionScope.SlideDirection.Left,
-                            animationSpec = tween(300)
-                        )
-                    } else {
-                        null
-                    }
-                },
-                exitTransition = {
-                    if (targetState.destination.route == "today") {
-                        slideOutOfContainer(
-                            AnimatedContentTransitionScope.SlideDirection.Right,
-                            animationSpec = tween(300)
-                        )
-                    } else {
-                        null
-                    }
-                }
-            ) { backStackEntry ->
+            composable(route = "medications") { backStackEntry ->
                 val listViewModel: MedicationListViewModel = hiltViewModel()
                 val medications by listViewModel.medications.collectAsState()
 
