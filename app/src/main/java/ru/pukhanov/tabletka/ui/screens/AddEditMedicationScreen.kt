@@ -79,7 +79,15 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.core.net.toUri
 import androidx.compose.ui.platform.LocalView
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,8 +192,12 @@ fun AddEditMedicationScreen(
                     }
                 },
                 actions = {
-                    if (state.hasChanges) {
-                        IconButton(
+                    AnimatedVisibility(
+                        visible = state.hasChanges,
+                        enter = scaleIn(),
+                        exit = scaleOut()
+                    ) {
+                        FilledIconButton(
                             onClick = handleSave,
                             enabled = !state.isSaving
                         ) {
